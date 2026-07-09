@@ -8,3 +8,4 @@ GeoAlchemy2>=0.14.0
 python-jose[cryptography]>=3.3.0
 python-multipart
 slowapi
+fastapi-mail

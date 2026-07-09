@@ -5,6 +5,7 @@ from pydantic import BaseModel, EmailStr
 import random
 
 from core.limiter import limiter
+from utils.email import send_otp_email
 
 from db.session import get_db
 from core.security import create_access_token
@@ -24,7 +25,7 @@ class OTPRequest(BaseModel):
 
 @router.post("/email/request-otp", status_code=status.HTTP_200_OK)
 @limiter.limit("5/hour")
-def request_email_otp(request_body: OTPRequest, request: Request, db: Session = Depends(get_db)):
+async def request_email_otp(request_body: OTPRequest, request: Request, db: Session = Depends(get_db)):
     """
     Request an OTP for email login.
     If the user doesn't exist, they will be created upon verification.
@@ -35,13 +36,10 @@ def request_email_otp(request_body: OTPRequest, request: Request, db: Session = 
     # Store OTP in mock cache
     OTP_STORE[request_body.email] = otp
     
-    # In a real app, send this via email (e.g. SendGrid/AWS SES)
-    print(f"--- MOCK EMAIL SENDER ---")
-    print(f"To: {request_body.email}")
-    print(f"Your OTP is: {otp}")
-    print(f"-------------------------")
+    # Send the real email asynchronously
+    await send_otp_email(email_to=request_body.email, otp_code=otp)
     
-    return {"message": "OTP sent to email successfully (check server logs for POC)"}
+    return {"message": "OTP sent to email successfully"}
 
 
 @router.post("/email/verify-otp", response_model=Token)
