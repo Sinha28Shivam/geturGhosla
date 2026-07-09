@@ -38,6 +38,7 @@ class User(Base):
     auth_provider_id = Column(Text, unique=True, nullable=False)
     phone = Column(String(15), unique=True, index=True)
     email = Column(String(255), unique=True, index=True)
+    hashed_password = Column(String(255))
     full_name = Column(String(150))
     profile_photo_url = Column(Text)
     is_active = Column(Boolean, nullable=False, default=True)

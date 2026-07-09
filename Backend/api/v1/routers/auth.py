@@ -8,10 +8,10 @@ from core.limiter import limiter
 from utils.email import send_otp_email
 
 from db.session import get_db
-from core.security import create_access_token
+from core.security import create_access_token, get_password_hash, verify_password
 from api.deps import get_current_active_user
 from crud.crud_user import get_user_by_email, create_user
-from schemas.user import UserCreate, UserRead
+from schemas.user import UserCreate, UserRead, UserCreateWithPassword
 from schemas.token import Token
 from db.models import User
 
@@ -76,6 +76,105 @@ def verify_email_otp(
         user = create_user(db, user=user_in)
         
     # Generate JWT
+    access_token = create_access_token(data={"sub": str(user.id)})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/email/signup", status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/hour")
+async def signup_email_password(
+    request: Request,
+    user_in: UserCreateWithPassword,
+    db: Session = Depends(get_db)
+):
+    """
+    Signup with email and password.
+    Sends an OTP for verification.
+    """
+    user = get_user_by_email(db, email=user_in.email)
+    if user:
+        raise HTTPException(
+            status_code=400,
+            detail="User with this email already exists"
+        )
+    
+    hashed_password = get_password_hash(user_in.password)
+    user = create_user(db, user=user_in, hashed_password=hashed_password, is_active=False)
+    
+    # Generate OTP
+    otp = str(random.randint(100000, 999999))
+    OTP_STORE[user_in.email] = otp
+    
+    # Send email
+    await send_otp_email(email_to=user_in.email, otp_code=otp)
+    
+    return {"message": "User created successfully. Please check your email for the OTP to activate your account."}
+
+@router.post("/email/verify-signup-otp", status_code=status.HTTP_200_OK)
+@limiter.limit("5/15minute")
+def verify_signup_otp(
+    request_body: OTPRequest,
+    request: Request,
+    otp: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Verify the OTP for a new password signup.
+    Activates the user account.
+    """
+    email = request_body.email
+    stored_otp = OTP_STORE.get(email)
+    
+    if not stored_otp or stored_otp != otp:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect OTP or OTP expired"
+        )
+        
+    user = get_user_by_email(db, email=email)
+    if not user:
+         raise HTTPException(status_code=404, detail="User not found")
+         
+    # Activate user
+    user.is_active = True
+    db.add(user)
+    db.commit()
+    
+    del OTP_STORE[email]
+    
+    return {"message": "Account successfully activated. You can now login."}
+
+@router.post("/email/login", response_model=Token)
+@limiter.limit("5/15minute")
+def login_email_password(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    """
+    Login with email and password.
+    """
+    user = get_user_by_email(db, email=form_data.username)
+    if not user or not user.hashed_password:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email not verified. Please verify your email first."
+        )
+    
+    if not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        
     access_token = create_access_token(data={"sub": str(user.id)})
     return {"access_token": access_token, "token_type": "bearer"}
 

@@ -11,6 +11,9 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     email: EmailStr  # Email is required for Phase 1 OTP via email
 
+class UserCreateWithPassword(UserCreate):
+    password: str
+
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     profile_photo_url: Optional[str] = None

@@ -12,12 +12,14 @@ def get_user_by_email(db: Session, email: str) -> Optional[User]:
 def get_user_by_auth_provider_id(db: Session, auth_provider_id: str) -> Optional[User]:
     return db.query(User).filter(User.auth_provider_id == auth_provider_id).first()
 
-def create_user(db: Session, user: UserCreate) -> User:
+def create_user(db: Session, user: UserCreate, hashed_password: str = None, is_active: bool = True) -> User:
     db_user = User(
         email=user.email,
         auth_provider_id=f"email|{user.email}", # Simple mock for now
+        hashed_password=hashed_password,
         full_name=user.full_name,
         profile_photo_url=user.profile_photo_url,
+        is_active=is_active,
     )
     db.add(db_user)
     db.commit()
