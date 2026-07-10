@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
@@ -12,7 +12,7 @@ class UserCreate(UserBase):
     email: EmailStr  # Email is required for Phase 1 OTP via email
 
 class UserCreateWithPassword(UserCreate):
-    password: str
+    password: str = Field(..., max_length=72, description="Password cannot exceed 72 characters due to bcrypt limits")
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None

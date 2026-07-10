@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from geoalchemy2 import Geometry
 from typing import Optional, List
 from db.models import Room, RoomStatusEnum
 from schemas.room import RoomCreate, RoomUpdate
@@ -35,7 +36,7 @@ def get_room(db: Session, room_id: str) -> Optional[Room]:
     room = db.query(Room).filter(Room.id == room_id).first()
     if room:
         # Extract lat/lng from the PostGIS geography object (ST_Y is lat, ST_X is lng)
-        point = db.query(func.ST_Y(room.location.cast(func.geometry)), func.ST_X(room.location.cast(func.geometry))).first()
+        point = db.query(func.ST_Y(Room.location.cast(Geometry)), func.ST_X(Room.location.cast(Geometry))).filter(Room.id == room_id).first()
         room.lat = point[0]
         room.lng = point[1]
     return room
@@ -59,7 +60,7 @@ def update_room(db: Session, db_room: Room, room_in: RoomUpdate) -> Room:
     db.refresh(db_room)
     
     # Reload lat/lng
-    point = db.query(func.ST_Y(db_room.location.cast(func.geometry)), func.ST_X(db_room.location.cast(func.geometry))).first()
+    point = db.query(func.ST_Y(Room.location.cast(Geometry)), func.ST_X(Room.location.cast(Geometry))).filter(Room.id == db_room.id).first()
     db_room.lat = point[0]
     db_room.lng = point[1]
     
@@ -84,7 +85,12 @@ def get_rooms_nearby(db: Session, lat: float, lng: float, radius_km: float = 5, 
     # ST_Distance returns meters for geography types.
     distance_col = (func.ST_Distance(Room.location, func.ST_GeogFromText(target_point)) / 1000).label('distance_km')
     
-    results = db.query(Room, distance_col).filter(
+    results = db.query(
+        Room, 
+        distance_col,
+        func.ST_Y(Room.location.cast(Geometry)),
+        func.ST_X(Room.location.cast(Geometry))
+    ).filter(
         Room.status == RoomStatusEnum.active,
         func.ST_DWithin(Room.location, func.ST_GeogFromText(target_point), radius_meters)
     ).order_by(
@@ -93,10 +99,9 @@ def get_rooms_nearby(db: Session, lat: float, lng: float, radius_km: float = 5, 
     
     # Format the results to inject the computed fields
     rooms = []
-    for room, distance in results:
-        point = db.query(func.ST_Y(room.location.cast(func.geometry)), func.ST_X(room.location.cast(func.geometry))).first()
-        room.lat = point[0]
-        room.lng = point[1]
+    for room, distance, lat, lng in results:
+        room.lat = lat
+        room.lng = lng
         room.distance_km = float(distance)
         rooms.append(room)
         
