@@ -218,3 +218,73 @@ In priority order:
 3. Build Phase 1 only. Resist adding Phase 2/3 features "since you're in there anyway" — that instinct is what turns a 2-week MVP into a 2-month one.
 4. Add the three missing tables (`reviews`, `reports`, `saved_searches`) to schema.sql only when you actually start Phase 2/3 — don't pre-build them now.
 5. Set an Azure budget alert before deploying anything, given the no-spend-cap risk noted in Section 5.
+
+---
+
+## 13. Local Development Setup (How to Run)
+
+Follow these instructions to set up the backend and database on your local machine.
+
+### Prerequisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop) installed and running.
+- Python 3.10+ installed.
+- Git installed.
+
+### Step 1: Start the Database (PostgreSQL + PostGIS)
+Our database uses the **PostGIS** extension for geospatial queries (e.g., finding nearby rooms). We use a Docker container to ensure you have the exact correct environment.
+
+1. Open your terminal in the root folder of the project.
+2. Run the following command to start the database container:
+   ```bash
+   docker run --name room_discovery_db -e POSTGRES_USER=your_username -e POSTGRES_PASSWORD=your_password -e POSTGRES_DB=room_discovery -p 5432:5432 -d postgis/postgis:15-3.4
+   ```
+*(Note: If you already have a Postgres container running on port 5432, you will need to stop it or change the port).*
+
+### Step 2: Set Up the FastAPI Backend
+1. Open a new terminal and navigate to the backend folder:
+   ```bash
+   cd Backend
+   ```
+2. Create a Python Virtual Environment:
+   ```bash
+   # Windows
+   python -m venv venv
+   # macOS/Linux
+   python3 -m venv venv
+   ```
+3. Activate the Virtual Environment:
+   ```bash
+   # Windows PowerShell
+   .\venv\Scripts\activate
+   # macOS/Linux
+   source venv/bin/activate
+   ```
+4. Install all Python dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+### Step 3: Configure Environment Variables
+1. Inside the `Backend` folder, locate the `.env.example` file.
+2. Create a copy of this file and name it `.env` (make sure there is no `.txt` extension).
+3. Open `.env` and fill in your database credentials. They must match the ones you used in Step 1!
+   ```env
+   POSTGRES_USER=your_username
+   POSTGRES_PASSWORD=your_password
+   POSTGRES_SERVER=localhost
+   POSTGRES_PORT=5432
+   POSTGRES_DB=room_discovery
+   ```
+
+### Step 4: Run the Server
+While inside the `Backend` folder (with your virtual environment still activated), start the server:
+
+```bash
+uvicorn main:app --reload
+```
+
+### Step 5: Test the API
+Once the server is running, open your web browser and navigate to:
+**[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)**
+
+This opens the interactive **Swagger UI** where you can see all available API endpoints, test authentication, create rooms, and simulate the frontend integration!
