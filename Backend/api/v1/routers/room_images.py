@@ -6,11 +6,25 @@ from typing import List
 from db.session import get_db
 from api.deps import get_current_active_user
 from crud.crud_room import get_room
-from crud.crud_room_image import create_room_image, get_room_image, delete_room_image, set_primary_image, reorder_images
+from crud.crud_room_image import create_room_image, get_room_image, get_room_images, delete_room_image, set_primary_image, reorder_images
 from schemas.room_image import RoomImageRead, ImageReorder
 from db.models import User
 
 router = APIRouter()
+
+@router.get("/{room_id}/images", response_model=List[RoomImageRead])
+def read_room_images(
+    room_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """
+    List all images for a room in display order.
+    """
+    room = get_room(db, room_id=str(room_id))
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    return get_room_images(db, room_id=str(room_id))
 
 @router.post("/{room_id}/images", status_code=status.HTTP_200_OK)
 def request_presigned_upload_url(

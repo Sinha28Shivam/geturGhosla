@@ -18,6 +18,14 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     profile_photo_url: Optional[str] = None
 
+class UserPublicSummary(BaseModel):
+    id: UUID
+    full_name: Optional[str] = None
+    profile_photo_url: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
 class UserInDBBase(UserBase):
     id: UUID
     is_active: bool

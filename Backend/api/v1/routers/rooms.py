@@ -5,9 +5,9 @@ from uuid import UUID
 
 from db.session import get_db
 from api.deps import get_current_active_user, get_current_user
-from crud.crud_room import create_room, get_room, update_room, soft_delete_room, get_rooms_nearby, increment_view_count
+from crud.crud_room import create_room, get_room, update_room, soft_delete_room, get_rooms, get_rooms_nearby, increment_view_count
 from schemas.room import RoomCreate, RoomRead, RoomUpdate
-from db.models import User, RoomStatusEnum
+from db.models import User, RoomStatusEnum, RoomTypeEnum
 from core.limiter import limiter
 
 router = APIRouter()
@@ -48,6 +48,44 @@ def get_nearby_rooms(
     """
     rooms = get_rooms_nearby(db, lat=lat, lng=lng, radius_km=radius_km, limit=limit)
     return rooms
+
+@router.get("/", response_model=List[RoomRead])
+def list_rooms(
+    search: Optional[str] = Query(None, description="Search title, locality, city, or address"),
+    city: Optional[str] = Query(None),
+    locality: Optional[str] = Query(None),
+    room_type: Optional[RoomTypeEnum] = Query(None),
+    min_rent: Optional[float] = Query(None, ge=0),
+    max_rent: Optional[float] = Query(None, ge=0),
+    limit: int = Query(20, ge=1, le=50),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
+    """
+    List active rooms with optional catalog-style filters.
+    """
+    return get_rooms(
+        db,
+        search=search,
+        city=city,
+        locality=locality,
+        room_type=room_type,
+        min_rent=min_rent,
+        max_rent=max_rent,
+        limit=limit,
+        offset=offset,
+    )
+
+@router.get("/me", response_model=List[RoomRead])
+def get_my_rooms_endpoint(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get all rooms owned by the current user.
+    """
+    from crud.crud_room import get_my_rooms
+    return get_my_rooms(db, user_id=str(current_user.id))
 
 @router.get("/{id}", response_model=RoomRead)
 def read_room_by_id(
@@ -149,4 +187,3 @@ def express_interest(
     except Exception as e:
         # Catch unique constraint violation for duplicate interest
         raise HTTPException(status_code=400, detail="You have already expressed interest in this room")
-
