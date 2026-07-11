@@ -94,6 +94,20 @@ class Room(Base):
     images = relationship("RoomImage", back_populates="room", cascade="all, delete-orphan")
     interests = relationship("Interest", back_populates="room", cascade="all, delete-orphan")
 
+    @property
+    def primary_image_url(self):
+        if not self.images:
+            return None
+        ordered_images = sorted(
+            self.images,
+            key=lambda image: (
+                0 if image.is_primary else 1,
+                image.sort_order if image.sort_order is not None else 0,
+                image.created_at,
+            ),
+        )
+        return ordered_images[0].image_url
+
 
 class RoomImage(Base):
     __tablename__ = 'room_images'

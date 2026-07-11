@@ -3,6 +3,8 @@ from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
 from db.models import RoomTypeEnum, RoomStatusEnum
+from schemas.room_image import RoomImageRead
+from schemas.user import UserPublicSummary
 
 class RoomBase(BaseModel):
     title: str
@@ -48,3 +50,18 @@ class RoomInDBBase(RoomBase):
 
 class RoomRead(RoomInDBBase):
     distance_km: Optional[float] = None
+    images: List[RoomImageRead] = []
+    primary_image_url: Optional[str] = None
+    owner: Optional[UserPublicSummary] = None
+
+class RoomSummary(BaseModel):
+    id: UUID
+    title: str
+    city: str
+    locality: Optional[str] = None
+    monthly_rent: condecimal(ge=0)
+    status: RoomStatusEnum
+    primary_image_url: Optional[str] = None
+
+    class Config:
+        from_attributes = True

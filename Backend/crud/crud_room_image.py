@@ -16,6 +16,14 @@ def create_room_image(db: Session, room_id: str, image_url: str, is_primary: boo
 def get_room_image(db: Session, image_id: str) -> Optional[RoomImage]:
     return db.query(RoomImage).filter(RoomImage.id == image_id).first()
 
+def get_room_images(db: Session, room_id: str) -> List[RoomImage]:
+    return (
+        db.query(RoomImage)
+        .filter(RoomImage.room_id == room_id)
+        .order_by(RoomImage.is_primary.desc(), RoomImage.sort_order.asc(), RoomImage.created_at.asc())
+        .all()
+    )
+
 def delete_room_image(db: Session, db_image: RoomImage):
     db.delete(db_image)
     db.commit()

@@ -1,5 +1,6 @@
 from db.session import engine
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from db.base import Base
 import db.models
 
@@ -12,6 +13,13 @@ from core.limiter import limiter
 app = FastAPI(title=settings.PROJECT_NAME)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
@@ -29,4 +37,3 @@ def health_check():
 @app.get("/")
 def read_root():
     return {"Message": f"Welcome to {settings.PROJECT_NAME}"}
-

@@ -28,29 +28,26 @@ def read_pending_rooms(
     """
     Get all rooms pending review, oldest first.
     """
-    from sqlalchemy import func
-    from geoalchemy2 import Geometry
+    from sqlalchemy.orm import selectinload
+    from crud.crud_room import _hydrate_room_fields
     
-    # We must explicitly select ST_Y and ST_X to inject lat/lng into the Pydantic schema
-    results = db.query(
-        Room, 
-        func.ST_Y(Room.location.cast(Geometry)).label('lat'), 
-        func.ST_X(Room.location.cast(Geometry)).label('lng')
+    rooms = db.query(Room).options(
+        selectinload(Room.images),
+        selectinload(Room.owner)
     ).filter(
         Room.status == RoomStatusEnum.pending_review
     ).order_by(Room.created_at.asc()).all()
     
-    rooms = []
-    for room, lat, lng in results:
-        room.lat = lat
-        room.lng = lng
-        rooms.append(room)
+    for room in rooms:
+        _hydrate_room_fields(db, room)
         
     return rooms
 
+from typing import Optional
+
 class RoomStatusUpdate(BaseModel):
     status: RoomStatusEnum
-    reason: str = None # Required if rejecting or flagging
+    reason: Optional[str] = None
 
 @router.patch("/rooms/{id}/status", response_model=RoomRead)
 def update_room_status(
