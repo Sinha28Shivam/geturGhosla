@@ -32,6 +32,7 @@ export function ListingView() {
   const [roomForm, setRoomForm] = useState(DEFAULT_ROOM_FORM);
   const [manageRoomId, setManageRoomId] = useState("");
   const [imageForm, setImageForm] = useState({ room_id: "", is_primary: "false" });
+  const [imageFile, setImageFile] = useState(null);
   const [imageResult, setImageResult] = useState(null);
   const [managedImages, setManagedImages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -197,20 +198,48 @@ export function ListingView() {
     }
   };
 
+  const uploadImageToCloudinary = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    if (!cloudName || !import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET) {
+      throw new Error("Cloudinary environment variables not set in .env");
+    }
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      console.error("Cloudinary error:", errorData);
+      throw new Error(errorData.error?.message || "Failed to upload image to Cloudinary");
+    }
+    const data = await res.json();
+    return data.secure_url;
+  };
+
   const handleConfirmImage = async (event) => {
     event.preventDefault();
     if (!imageForm.room_id) {
       announce("Please provide a Room ID for the image.", "error");
       return;
     }
+    if (!imageFile) {
+      announce("Please select an image file first.", "error");
+      return;
+    }
     setIsLoading(true);
     try {
-      const uploadMeta = await api.rooms.requestImageUpload(imageForm.room_id);
+      const imageUrl = await uploadImageToCloudinary(imageFile);
       const image = await api.rooms.confirmImage(
         imageForm.room_id,
-        uploadMeta.file_url,
+        imageUrl,
         imageForm.is_primary
       );
+      setImageFile(null);
       setImageResult(image);
       await loadManagedImages(imageForm.room_id);
       announce("Photo successfully added.");
@@ -467,6 +496,14 @@ export function ListingView() {
             
             <form className="image-confirm-form" onSubmit={handleConfirmImage}>
               <div className="management-actions">
+                <label className="field">
+                  <span>Select Image</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setImageFile(e.target.files[0] || null)}
+                  />
+                </label>
                 <label className="field">
                   <span>Is this the primary image?</span>
                   <select

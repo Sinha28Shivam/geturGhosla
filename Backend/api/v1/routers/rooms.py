@@ -4,16 +4,17 @@ from typing import List, Optional
 from uuid import UUID
 
 from db.session import get_db
-from api.deps import get_current_active_user, get_current_user
+from api.deps import get_current_active_user, get_current_user, oauth2_scheme_optional
 from crud.crud_room import create_room, get_room, update_room, soft_delete_room, get_rooms, get_rooms_nearby, increment_view_count
 from schemas.room import RoomCreate, RoomRead, RoomUpdate
 from db.models import User, RoomStatusEnum, RoomTypeEnum
 from core.limiter import limiter
+from slowapi.util import get_remote_address
 
 router = APIRouter()
 
 # Optional authentication dependency for routes that behave differently
-def get_optional_user(db: Session = Depends(get_db), token: Optional[str] = None) -> Optional[User]:
+def get_optional_user(db: Session = Depends(get_db), token: Optional[str] = Depends(oauth2_scheme_optional)) -> Optional[User]:
     if token:
         try:
             return get_current_user(db, token)
@@ -102,11 +103,8 @@ def read_room_by_id(
         
     # If not active, only owner can view it
     if room.status != RoomStatusEnum.active:
-        # We don't have true optional auth wired up elegantly in the deps yet, 
-        # so for this MVP we just strictly hide it unless they own it.
-        # Ideally, `current_user` would be optionally injected.
-        # We will assume if it's not active, it's hidden for now unless we enforce auth.
-        pass # Simplified for MVP. We return 404 to not leak existence.
+        if not current_user or str(room.owner_id) != str(current_user.id):
+            raise HTTPException(status_code=404, detail="Room not found")
         
     return room
 
@@ -147,8 +145,11 @@ def delete_room(
     room = soft_delete_room(db, db_room=room)
     return room
 
+def room_view_key(request: Request):
+    return f"{get_remote_address(request)}:{request.path_params.get('id')}"
+
 @router.post("/{id}/view")
-@limiter.limit("1/hour")
+@limiter.limit("1/hour", key_func=room_view_key)
 def record_room_view(request: Request, id: UUID, db: Session = Depends(get_db)):
     """
     Increment view count for a room.

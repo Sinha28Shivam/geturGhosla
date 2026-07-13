@@ -3,6 +3,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 import random
+import time
+from collections import defaultdict
 
 from core.limiter import limiter
 from utils.email import send_otp_email
@@ -20,16 +22,28 @@ router = APIRouter()
 # Mock OTP Store (In-memory dict). Replace with Redis in production.
 OTP_STORE = {}
 
+# Simple in-memory rate limiters for MVP. Replace with Redis in production.
+AUTH_RATE_LIMITS = defaultdict(list)
+
+def check_auth_rate_limit(email: str, max_calls: int, window_seconds: int):
+    now = time.time()
+    calls = [t for t in AUTH_RATE_LIMITS[email] if now - t < window_seconds]
+    if len(calls) >= max_calls:
+        raise HTTPException(status_code=429, detail="Too Many Requests")
+    calls.append(now)
+    AUTH_RATE_LIMITS[email] = calls
+
 class OTPRequest(BaseModel):
     email: EmailStr
 
 @router.post("/email/request-otp", status_code=status.HTTP_200_OK)
-@limiter.limit("5/hour")
 async def request_email_otp(request_body: OTPRequest, request: Request, db: Session = Depends(get_db)):
     """
     Request an OTP for email login.
     If the user doesn't exist, they will be created upon verification.
     """
+    check_auth_rate_limit(request_body.email, max_calls=5, window_seconds=3600)
+    
     # Generate a 6 digit OTP
     otp = str(random.randint(100000, 999999))
     
@@ -43,7 +57,6 @@ async def request_email_otp(request_body: OTPRequest, request: Request, db: Sess
 
 
 @router.post("/email/verify-otp", response_model=Token)
-@limiter.limit("5/15minute")
 def verify_email_otp(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -56,6 +69,8 @@ def verify_email_otp(
     """
     email = form_data.username
     otp = form_data.password
+    
+    check_auth_rate_limit(email, max_calls=5, window_seconds=900)
     
     # Verify OTP
     stored_otp = OTP_STORE.get(email)
@@ -81,7 +96,6 @@ def verify_email_otp(
 
 
 @router.post("/email/signup", status_code=status.HTTP_201_CREATED)
-@limiter.limit("5/hour")
 async def signup_email_password(
     request: Request,
     user_in: UserCreateWithPassword,
@@ -91,6 +105,8 @@ async def signup_email_password(
     Signup with email and password.
     Sends an OTP for verification.
     """
+    check_auth_rate_limit(user_in.email, max_calls=5, window_seconds=3600)
+    
     user = get_user_by_email(db, email=user_in.email)
     if user:
         raise HTTPException(
@@ -111,7 +127,6 @@ async def signup_email_password(
     return {"message": "User created successfully. Please check your email for the OTP to activate your account."}
 
 @router.post("/email/verify-signup-otp", status_code=status.HTTP_200_OK)
-@limiter.limit("5/15minute")
 def verify_signup_otp(
     request_body: OTPRequest,
     request: Request,
@@ -123,6 +138,9 @@ def verify_signup_otp(
     Activates the user account.
     """
     email = request_body.email
+    
+    check_auth_rate_limit(email, max_calls=5, window_seconds=900)
+    
     stored_otp = OTP_STORE.get(email)
     
     if not stored_otp or stored_otp != otp:
@@ -145,7 +163,6 @@ def verify_signup_otp(
     return {"message": "Account successfully activated. You can now login."}
 
 @router.post("/email/login", response_model=Token)
-@limiter.limit("5/15minute")
 def login_email_password(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -154,7 +171,10 @@ def login_email_password(
     """
     Login with email and password.
     """
-    user = get_user_by_email(db, email=form_data.username)
+    email = form_data.username
+    check_auth_rate_limit(email, max_calls=5, window_seconds=900)
+    
+    user = get_user_by_email(db, email=email)
     if not user or not user.hashed_password:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

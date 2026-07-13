@@ -49,7 +49,6 @@ def create_room(db: Session, room_in: RoomCreate, owner_id: str) -> Room:
         state=room_in.state,
         pincode=room_in.pincode,
         location=point,
-        status=RoomStatusEnum.active
     )
     db.add(db_room)
     db.commit()
@@ -84,8 +83,8 @@ def update_room(db: Session, db_room: Room, room_in: RoomUpdate) -> Room:
     for field, value in update_data.items():
         setattr(db_room, field, value)
         
-    # Any update resets status to pending_review (Disabled for MVP to allow instant updates)
-    db_room.status = RoomStatusEnum.active
+    # Any update resets status to pending_review
+    db_room.status = RoomStatusEnum.pending_review
     
     db.add(db_room)
     db.commit()
@@ -151,7 +150,11 @@ def get_rooms(
     offset: int = 0,
 ) -> List[Room]:
     query = (
-        db.query(Room)
+        db.query(
+            Room,
+            func.ST_Y(Room.location.cast(Geometry)),
+            func.ST_X(Room.location.cast(Geometry))
+        )
         .options(selectinload(Room.images), selectinload(Room.owner))
         .filter(Room.status == RoomStatusEnum.active)
     )
@@ -182,16 +185,18 @@ def get_rooms(
         .all()
     )
 
-    return [_hydrate_room_fields(db, room) for room in results]
+    return [_hydrate_room_fields(db, room, lat=lat, lng=lng) for room, lat, lng in results]
 
 def get_my_rooms(db: Session, user_id: str) -> List[Room]:
-    rooms = (
-        db.query(Room)
+    results = (
+        db.query(
+            Room,
+            func.ST_Y(Room.location.cast(Geometry)),
+            func.ST_X(Room.location.cast(Geometry))
+        )
         .options(selectinload(Room.images), selectinload(Room.owner))
         .filter(Room.owner_id == user_id)
         .order_by(Room.created_at.desc())
         .all()
     )
-    for room in rooms:
-        _hydrate_room_fields(db, room)
-    return rooms
+    return [_hydrate_room_fields(db, room, lat=lat, lng=lng) for room, lat, lng in results]

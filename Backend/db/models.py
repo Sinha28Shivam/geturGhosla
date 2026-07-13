@@ -42,6 +42,7 @@ class User(Base):
     full_name = Column(String(150))
     profile_photo_url = Column(Text)
     is_active = Column(Boolean, nullable=False, default=True)
+    is_admin = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
