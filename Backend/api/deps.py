@@ -9,6 +9,7 @@ from crud.crud_user import get_user
 from db.models import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/email/verify-otp")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="api/v1/auth/email/verify-otp", auto_error=False)
 
 def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> User:
     credentials_exception = HTTPException(

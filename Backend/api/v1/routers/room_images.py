@@ -26,28 +26,7 @@ def read_room_images(
 
     return get_room_images(db, room_id=str(room_id))
 
-@router.post("/{room_id}/images", status_code=status.HTTP_200_OK)
-def request_presigned_upload_url(
-    room_id: UUID,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    """
-    Returns a presigned upload URL for Blob Storage/S3.
-    """
-    room = get_room(db, room_id=str(room_id))
-    if not room or str(room.owner_id) != str(current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized")
-        
-    # MOCK implementation for presigned URL
-    mock_upload_url = f"https://mock-storage.com/upload/{room_id}/{UUID(int=0).hex}.jpg"
-    mock_file_url = f"https://mock-storage.com/images/{room_id}/{UUID(int=0).hex}.jpg"
-    
-    return {
-        "upload_url": mock_upload_url,
-        "file_url": mock_file_url,
-        "message": "Upload file via PUT to upload_url, then call /confirm with file_url"
-    }
+
 
 @router.post("/{room_id}/images/confirm", response_model=RoomImageRead)
 def confirm_image_upload(

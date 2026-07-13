@@ -68,10 +68,7 @@ export function createApi(httpClient) {
         httpClient(`/api/v1/rooms/${roomId}`, {
           method: "DELETE",
         }),
-      requestImageUpload: (roomId) =>
-        httpClient(`/api/v1/rooms/${roomId}/images`, {
-          method: "POST",
-        }),
+
       confirmImage: (roomId, imageUrl, isPrimary) =>
         httpClient(
           `/api/v1/rooms/${roomId}/images/confirm?image_url=${encodeURIComponent(imageUrl)}&is_primary=${isPrimary}`,
