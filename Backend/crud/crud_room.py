@@ -49,6 +49,7 @@ def create_room(db: Session, room_in: RoomCreate, owner_id: str) -> Room:
         state=room_in.state,
         pincode=room_in.pincode,
         location=point,
+        status=RoomStatusEnum.active
     )
     db.add(db_room)
     db.commit()
@@ -83,8 +84,8 @@ def update_room(db: Session, db_room: Room, room_in: RoomUpdate) -> Room:
     for field, value in update_data.items():
         setattr(db_room, field, value)
         
-    # Any update resets status to pending_review
-    db_room.status = RoomStatusEnum.pending_review
+    # Any update resets status to pending_review (Disabled for MVP to allow instant updates)
+    db_room.status = RoomStatusEnum.active
     
     db.add(db_room)
     db.commit()
