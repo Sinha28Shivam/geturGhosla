@@ -15,8 +15,8 @@ router = APIRouter()
 # In a real app, this dependency should check if the user has an 'admin' role.
 # For MVP, we will assume any active user can access this (or you can add a simple check).
 def get_current_admin_user(current_user: User = Depends(get_current_active_user)):
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Not enough privileges")
+    # if not current_user.is_admin:
+    #     raise HTTPException(status_code=403, detail="Not enough privileges")
     return current_user
 
 @router.get("/rooms/pending", response_model=List[RoomRead])
