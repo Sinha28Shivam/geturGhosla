@@ -113,34 +113,21 @@ button {
 }
 
 .auth-form-panel {
-  padding: 72px 100px;
+  padding: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-card {
+  width: min(520px, 100%);
+  padding: 36px 32px;
   display: grid;
-  align-content: center;
   gap: 24px;
-}
-
-.settings-inline {
-  width: min(460px, 100%);
-}
-
-.auth-card,
-.detail-card,
-.profile-card,
-.inbox-panel,
-.empty-panel,
-.inline-note,
-.full-width-card {
   border: 1px solid var(--line);
   border-radius: 18px;
   box-shadow: var(--shadow);
   background: var(--surface);
-}
-
-.auth-card {
-  width: min(460px, 100%);
-  padding: 28px;
-  display: grid;
-  gap: 20px;
 }
 
 .full-width-card {
@@ -202,21 +189,25 @@ button {
 }
 
 .section-copy h2 {
-  margin: 0;
+  margin: 0 0 6px 0;
   font-size: 1.6rem;
   font-weight: 700;
 }
 
 .section-copy p {
-  margin: 0;
+  margin: 0 0 16px 0;
   color: var(--text-muted);
   line-height: 1.45;
 }
 
-.listing-form,
-.profile-form {
+.auth-stack {
   display: grid;
-  gap: 16px;
+  gap: 20px;
+}
+
+.auth-form {
+  display: grid;
+  gap: 20px;
 }
 
 .app-shell {
