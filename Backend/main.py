@@ -51,7 +51,10 @@ app.include_router(compare.router, prefix="/api/v1/compare", tags=["compare"])
 app.include_router(reviews.router, prefix="/api/v1/reviews", tags=["reviews"])
 app.include_router(saved_searches.router, prefix="/api/v1/saved-searches", tags=["saved-searches"])
 
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    logger.error(f"Failed to create database tables on startup: {e}")
 
 @app.get("/health")
 def health_check():

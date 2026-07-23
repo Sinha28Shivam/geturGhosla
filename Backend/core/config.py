@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Room Discovery API"
-    SECRET_KEY: str
+    SECRET_KEY: str = "supersecretkey_please_change_in_production"
     ADMIN_USERNAME: str = "admin"
     ADMIN_PASSWORD: str = "Admin@123"
 
