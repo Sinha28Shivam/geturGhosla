@@ -36,8 +36,8 @@ async def send_otp_email(email_to: str, otp_code: str):
         subtype=MessageType.html
     )
     
-    # If the username/password are not set in .env yet, we skip sending to prevent a crash
-    if not settings.SMTP_USERNAME or not settings.SMTP_PASSWORD or settings.SMTP_USERNAME == "your_gmail_address@gmail.com":
+    # If the username/password are not set, we skip sending to prevent a crash
+    if not settings.SMTP_PASSWORD or settings.SMTP_USERNAME == "your_gmail_address@gmail.com":
         print(f"--- MOCK EMAIL SENDER ---")
         print(f"To: {email_to}")
         print(f"Your OTP is: {otp_code}")
