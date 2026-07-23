@@ -20,6 +20,7 @@ export function RoomDetailPanel({
   const [reviews, setReviews] = useState([]);
   const [newRating, setNewRating] = useState(5);
   const [newComment, setNewComment] = useState("");
+  const [activeImage, setActiveImage] = useState(null);
 
   const isOwner = currentUser && room && String(room.owner_id) === String(currentUser.id);
 
@@ -107,33 +108,38 @@ export function RoomDetailPanel({
     >
       <div className="gallery-panel">
         {heroImage ? (
-          <img className="gallery-hero gallery-image" src={heroImage} alt={room.title} style={{ objectFit: "cover", width: "100%", borderRadius: 16 }} />
+          <img 
+            className="gallery-hero" 
+            src={activeImage || heroImage} 
+            alt={room.title} 
+          />
         ) : (
-          <div className="gallery-hero" aria-hidden="true" />
+          <div className="gallery-hero" style={{ minHeight: 300, background: "var(--line)" }} aria-hidden="true" />
         )}
         <div className="gallery-strip">
           {galleryImages.length ? (
-            galleryImages.slice(0, 4).map((image) => (
+            galleryImages.map((image) => (
               <img
                 key={image.id}
-                className="gallery-thumb gallery-image"
+                className="gallery-thumb"
                 src={image.image_url}
                 alt={`${room.title} view`}
-                style={{ objectFit: "cover", borderRadius: 8 }}
+                onClick={() => setActiveImage(image.image_url)}
+                style={{ 
+                  height: 90, 
+                  width: "100%", 
+                  objectFit: "cover", 
+                  borderRadius: 8, 
+                  cursor: "pointer",
+                  border: (activeImage || heroImage) === image.image_url ? "2px solid var(--teal)" : "1px solid var(--line)"
+                }}
               />
             ))
-          ) : (
-            <>
-              <div className="gallery-thumb" />
-              <div className="gallery-thumb" />
-              <div className="gallery-thumb" />
-              <div className="gallery-thumb" />
-            </>
-          )}
+          ) : null}
         </div>
 
         {/* Phase 3 Reviews Section */}
-        <div style={{ marginTop: 32 }} className="inbox-panel">
+        <div style={{ marginTop: 32, padding: 24 }} className="inbox-panel">
           <h2><Star size={18} color="var(--mustard)" style={{ verticalAlign: "middle", marginRight: 8 }} /> Tenant Reviews ({reviews.length})</h2>
           
           <form onSubmit={handleAddReview} style={{ marginTop: 16, display: "grid", gap: 12 }}>
@@ -203,8 +209,12 @@ export function RoomDetailPanel({
         <div className="divider" />
         <p className="detail-description">{room.description || "No description provided yet."}</p>
         
-        <div className="owner-row">
-          <div className="owner-avatar" aria-hidden="true" />
+        <div className="owner-row" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {room.owner?.profile_photo_url ? (
+            <img src={room.owner.profile_photo_url} alt="Owner profile" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover" }} />
+          ) : (
+            <div className="owner-avatar" aria-hidden="true" />
+          )}
           <span>LISTED BY {(room.owner?.full_name || "OWNER").toUpperCase()}</span>
         </div>
 
