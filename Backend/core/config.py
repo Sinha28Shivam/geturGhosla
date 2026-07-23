@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "room_db"
     
     # Email SMTP Settings (Gmail Defaults)
-    SMTP_USERNAME: str = ""
+    SMTP_USERNAME: str = "noreply@roomdiscovery.com"
     SMTP_PASSWORD: str = ""
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
