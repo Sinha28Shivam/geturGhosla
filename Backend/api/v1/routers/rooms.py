@@ -29,9 +29,20 @@ def create_new_room(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Create a new room listing."""
+    """Create a new room listing (with Idempotency key support)."""
+    from core.idempotency import check_idempotency, save_idempotency_response
+    cached_response = check_idempotency(request)
+    if cached_response:
+        return cached_response
+
     from crud.crud_room import create_room
-    return create_room(db, room_in=room_in, owner_id=str(current_user.id))
+    room = create_room(db, room_in=room_in, owner_id=str(current_user.id))
+    
+    # Save to idempotency store
+    room_dict = RoomRead.model_validate(room).model_dump()
+    save_idempotency_response(request, room_dict)
+    
+    return room
 
 @router.get("/nearby", response_model=List[RoomRead])
 def get_nearby_rooms(

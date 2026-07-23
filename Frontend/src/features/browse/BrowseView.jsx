@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { RoomCard } from "../../components/rooms/RoomCard";
+import { RoomSkeletonCard } from "../../components/common/RoomSkeletonCard";
+import { FilterDrawer } from "../../components/common/FilterDrawer";
 import { InteractiveRoomMap } from "../../components/map/InteractiveRoomMap";
 import { useAppContext } from "../../AppContext";
 import { motion } from "framer-motion";
-import { MapPin, RefreshCw, Map, List, Navigation } from "lucide-react";
+import { MapPin, RefreshCw, Map, List, Navigation, SlidersHorizontal } from "lucide-react";
 
 const DEFAULT_FILTERS = [
   "Under ₹8k",
@@ -21,7 +23,11 @@ export function BrowseView({ onOpenRoom }) {
   const [rooms, setRooms] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [locationName, setLocationName] = useState("Detecting Location...");
-  const [viewMode, setViewMode] = useState("split"); // 'split' | 'grid' | 'map'
+  const [viewMode, setViewMode] = useState("split");
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+  const [maxRent, setMaxRent] = useState(15000);
+  const [selectedTypes, setSelectedTypes] = useState([]);
+  const [selectedAmenities, setSelectedAmenities] = useState([]);
 
   const fetchRoomsForLocation = useCallback(async (formToUse) => {
     setIsLoading(true);
@@ -134,6 +140,14 @@ export function BrowseView({ onOpenRoom }) {
               aria-label="Current search coordinates"
             />
           </div>
+          <button 
+            type="button" 
+            className="filter-chip" 
+            style={{ background: "var(--mustard)", color: "var(--text)", fontWeight: 700 }}
+            onClick={() => setIsFilterDrawerOpen(true)}
+          >
+            <SlidersHorizontal size={14} style={{ marginRight: 4, display: "inline", verticalAlign: "middle" }} /> Advanced Filters
+          </button>
           {DEFAULT_FILTERS.map((chip) => (
             <button type="button" className="filter-chip" key={chip}>
               {chip}
@@ -205,10 +219,12 @@ export function BrowseView({ onOpenRoom }) {
             />
           </div>
           <div className="card-grid" style={{ gridTemplateColumns: "1fr" }}>
-            {rooms.length ? (
+            {isLoading ? (
+              [1, 2, 3].map((n) => <RoomSkeletonCard key={n} />)
+            ) : rooms.length ? (
               rooms.map((room) => <RoomCard key={room.id} room={room} onSelect={() => onOpenRoom(room.id)} />)
             ) : (
-              <div className="empty-panel">{isLoading ? "Searching rooms near your location..." : "No active rooms returned for this area."}</div>
+              <div className="empty-panel">No active rooms returned for this area.</div>
             )}
           </div>
         </div>
@@ -216,10 +232,12 @@ export function BrowseView({ onOpenRoom }) {
 
       {viewMode === "grid" && (
         <div className="card-grid">
-          {rooms.length ? (
+          {isLoading ? (
+            [1, 2, 3, 4, 5, 6].map((n) => <RoomSkeletonCard key={n} />)
+          ) : rooms.length ? (
             rooms.map((room) => <RoomCard key={room.id} room={room} onSelect={() => onOpenRoom(room.id)} />)
           ) : (
-            <div className="empty-panel">{isLoading ? "Searching rooms near your location..." : "No active rooms returned for this area."}</div>
+            <div className="empty-panel">No active rooms returned for this area.</div>
           )}
         </div>
       )}
@@ -233,6 +251,18 @@ export function BrowseView({ onOpenRoom }) {
           onSelectRoom={onOpenRoom}
         />
       )}
+
+      <FilterDrawer
+        isOpen={isFilterDrawerOpen}
+        onClose={() => setIsFilterDrawerOpen(false)}
+        maxRent={maxRent}
+        setMaxRent={setMaxRent}
+        selectedTypes={selectedTypes}
+        setSelectedTypes={setSelectedTypes}
+        selectedAmenities={selectedAmenities}
+        setSelectedAmenities={setSelectedAmenities}
+        onApply={() => fetchRoomsForLocation(nearbyForm)}
+      />
     </motion.section>
   );
 }
