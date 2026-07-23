@@ -19,7 +19,8 @@ import { usePersistentState } from "./hooks/usePersistentState";
 import { buildHash, parseHash, DEFAULT_VIEW } from "./utils/navigation";
 
 function App() {
-  const [apiBase, setApiBase] = usePersistentState("pgfinder_api_base", "http://127.0.0.1:8000");
+  const defaultApiBase = import.meta.env.VITE_API_BASE_URL || "https://room-discovery-api-2026.azurewebsites.net";
+  const [apiBase, setApiBase] = usePersistentState("pgfinder_api_base", defaultApiBase);
   const [token, setToken] = usePersistentState("pgfinder_token", "");
   const [currentUser, setCurrentUser] = useState(null);
   const [sessionRole, setSessionRole] = usePersistentState("pgfinder_session_role", "");

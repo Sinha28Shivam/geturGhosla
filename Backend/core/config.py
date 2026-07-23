@@ -7,11 +7,11 @@ class Settings(BaseSettings):
     ADMIN_USERNAME: str = "admin"
     ADMIN_PASSWORD: str = "Admin@123"
 
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_SERVER: str
-    POSTGRES_PORT: str
-    POSTGRES_DB: str
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_PASSWORD: str = "postgres"
+    POSTGRES_SERVER: str = "localhost"
+    POSTGRES_PORT: str = "5432"
+    POSTGRES_DB: str = "room_db"
     
     # Email SMTP Settings (Gmail Defaults)
     SMTP_USERNAME: str = ""
@@ -29,8 +29,12 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str = ""
     CLOUDINARY_API_SECRET: str = ""
 
+    DATABASE_URL_OVERRIDE: str = ""
+
     @property
     def DATABASE_URL(self) -> str:
+        if self.DATABASE_URL_OVERRIDE:
+            return self.DATABASE_URL_OVERRIDE
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     class Config:
