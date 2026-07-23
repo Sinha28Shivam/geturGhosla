@@ -216,3 +216,29 @@ def list_room_reviews(
 ):
     """Get reviews for a room."""
     return get_reviews_for_room(db, room_id=str(id))
+
+from schemas.interest import InterestCreate, InterestRead
+from crud.crud_interest import create_interest
+
+@router.post("/{id}/interest", response_model=InterestRead, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/day")
+def express_interest(
+    request: Request,
+    id: UUID,
+    interest_in: InterestCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Express interest in a room."""
+    room = get_room(db, room_id=str(id))
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    if str(room.owner_id) == str(current_user.id):
+        raise HTTPException(status_code=400, detail="Cannot express interest in your own room")
+        
+    try:
+        interest = create_interest(db, room_id=str(id), seeker_id=str(current_user.id), message=interest_in.message)
+        return interest
+    except Exception:
+        raise HTTPException(status_code=400, detail="You have already expressed interest in this room")
+
