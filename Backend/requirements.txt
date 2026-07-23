@@ -10,3 +10,4 @@ python-multipart
 slowapi
 fastapi-mail
 email-validator>=2.0.0
+opencensus-ext-azure>=1.1.0

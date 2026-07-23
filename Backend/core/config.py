@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str = ""
     CLOUDINARY_API_SECRET: str = ""
 
+    # Azure Application Insights Telemetry
+    APPLICATIONINSIGHTS_CONNECTION_STRING: str = ""
+
     DATABASE_URL_OVERRIDE: str = ""
 
     @property

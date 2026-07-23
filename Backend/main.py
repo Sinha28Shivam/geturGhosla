@@ -10,9 +10,21 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from core.limiter import limiter
 
+import time
+from core.logger import logger
+
 app = FastAPI(title=settings.PROJECT_NAME)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+@app.middleware("http")
+async def log_requests(request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration = round((time.time() - start_time) * 1000, 2)
+    logger.info(f"HTTP {request.method} {request.url.path} -> {response.status_code} ({duration}ms)")
+    return response
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
