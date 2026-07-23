@@ -14,18 +14,7 @@ export function AuthLayout({ children, apiBase, setApiBase }) {
         </div>
       </section>
       <section className="auth-form-panel">
-        <div className="settings-inline">
-          <label className="field compact-field">
-            <span>API base URL</span>
-            <input
-              type="url"
-              value={apiBase}
-              onChange={(event) => setApiBase(event.target.value.trim().replace(/\/+$/, ""))}
-              autoComplete="url"
-              required
-            />
-          </label>
-        </div>
+
         {children}
       </section>
     </div>

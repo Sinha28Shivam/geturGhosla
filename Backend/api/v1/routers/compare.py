@@ -8,12 +8,14 @@ from api.deps import get_current_active_user
 from crud.crud_room import get_room
 from schemas.room import RoomRead
 from db.models import User
-import json
+from core.redis_client import redis_client
 
 router = APIRouter()
 
-# Simple in-memory fallback for compare set if Redis isn't installed/configured
-COMPARE_STORAGE = {}
+COMPARE_FALLBACK = {}
+
+def get_user_compare_key(user_id: str) -> str:
+    return f"compare:{user_id}"
 
 @router.post("/{roomId}", status_code=status.HTTP_201_CREATED)
 def add_to_compare(
@@ -21,18 +23,28 @@ def add_to_compare(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Add a room to compare set (Max 4)."""
+    """Add a room to compare set (Max 4, backed by Redis)."""
     room = get_room(db, room_id=str(roomId))
     if not room:
         raise HTTPException(status_code=404, detail="Room not found")
         
     user_id = str(current_user.id)
-    user_set = COMPARE_STORAGE.setdefault(user_id, set())
-    if len(user_set) >= 4 and str(roomId) not in user_set:
-        raise HTTPException(status_code=400, detail="Cannot compare more than 4 rooms at a time")
-        
-    user_set.add(str(roomId))
-    return {"message": "Room added to compare list", "count": len(user_set)}
+    str_room_id = str(roomId)
+
+    if redis_client:
+        key = get_user_compare_key(user_id)
+        if redis_client.scard(key) >= 4 and not redis_client.sismember(key, str_room_id):
+            raise HTTPException(status_code=400, detail="Cannot compare more than 4 rooms at a time")
+        redis_client.sadd(key, str_room_id)
+        count = redis_client.scard(key)
+    else:
+        user_set = COMPARE_FALLBACK.setdefault(user_id, set())
+        if len(user_set) >= 4 and str_room_id not in user_set:
+            raise HTTPException(status_code=400, detail="Cannot compare more than 4 rooms at a time")
+        user_set.add(str_room_id)
+        count = len(user_set)
+
+    return {"message": "Room added to compare list", "count": count}
 
 @router.delete("/{roomId}")
 def remove_from_compare(
@@ -41,23 +53,35 @@ def remove_from_compare(
 ):
     """Remove a room from compare set."""
     user_id = str(current_user.id)
-    user_set = COMPARE_STORAGE.get(user_id, set())
-    user_set.discard(str(roomId))
-    return {"message": "Room removed from compare list", "count": len(user_set)}
+    str_room_id = str(roomId)
+
+    if redis_client:
+        key = get_user_compare_key(user_id)
+        redis_client.srem(key, str_room_id)
+        count = redis_client.scard(key)
+    else:
+        user_set = COMPARE_FALLBACK.get(user_id, set())
+        user_set.discard(str_room_id)
+        count = len(user_set)
+
+    return {"message": "Room removed from compare list", "count": count}
 
 @router.get("/", response_model=List[RoomRead])
 def get_compare_list(
-    lat: Optional[float] = None,
-    lng: Optional[float] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Get full details of all rooms in compare set."""
     user_id = str(current_user.id)
-    user_set = COMPARE_STORAGE.get(user_id, set())
     
+    if redis_client:
+        key = get_user_compare_key(user_id)
+        room_ids = redis_client.smembers(key)
+    else:
+        room_ids = COMPARE_FALLBACK.get(user_id, set())
+
     rooms = []
-    for r_id in user_set:
+    for r_id in room_ids:
         r = get_room(db, room_id=r_id)
         if r:
             rooms.append(r)
@@ -69,5 +93,9 @@ def clear_compare_list(
 ):
     """Clear all rooms from compare set."""
     user_id = str(current_user.id)
-    COMPARE_STORAGE[user_id] = set()
+    if redis_client:
+        key = get_user_compare_key(user_id)
+        redis_client.delete(key)
+    else:
+        COMPARE_FALLBACK[user_id] = set()
     return {"message": "Compare list cleared"}

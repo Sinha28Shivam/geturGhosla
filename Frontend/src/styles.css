@@ -113,34 +113,21 @@ button {
 }
 
 .auth-form-panel {
-  padding: 72px 100px;
+  padding: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-card {
+  width: min(520px, 100%);
+  padding: 36px 32px;
   display: grid;
-  align-content: center;
   gap: 24px;
-}
-
-.settings-inline {
-  width: min(460px, 100%);
-}
-
-.auth-card,
-.detail-card,
-.profile-card,
-.inbox-panel,
-.empty-panel,
-.inline-note,
-.full-width-card {
   border: 1px solid var(--line);
   border-radius: 18px;
   box-shadow: var(--shadow);
   background: var(--surface);
-}
-
-.auth-card {
-  width: min(460px, 100%);
-  padding: 28px;
-  display: grid;
-  gap: 20px;
 }
 
 .full-width-card {
@@ -202,21 +189,25 @@ button {
 }
 
 .section-copy h2 {
-  margin: 0;
+  margin: 0 0 6px 0;
   font-size: 1.6rem;
   font-weight: 700;
 }
 
 .section-copy p {
-  margin: 0;
+  margin: 0 0 16px 0;
   color: var(--text-muted);
   line-height: 1.45;
 }
 
-.listing-form,
-.profile-form {
+.auth-stack {
   display: grid;
-  gap: 16px;
+  gap: 20px;
+}
+
+.auth-form {
+  display: grid;
+  gap: 20px;
 }
 
 .app-shell {
@@ -1112,59 +1103,119 @@ button {
   }
 }
 
-@media (max-width: 640px) {
-  .auth-hero-copy h1,
-  .page-section h1 {
-    font-size: 2.2rem;
+/* --- MOBILE BOTTOM NAVIGATION BAR --- */
+.mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .top-nav-links {
+    display: none !important;
   }
 
-  .auth-hero-panel,
-  .auth-form-panel,
-  .page-stage {
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-
-  .top-nav {
-    padding: 16px;
-  }
-
-  .detail-card,
-  .profile-card,
-  .profile-form,
-  .moderation-form,
-  .status-form,
-  .full-width-card {
-    padding: 18px;
-  }
-
-  .search-row {
-    align-items: stretch;
-  }
-
-  .search-box {
-    width: 100%;
-  }
-
-  .tabs-bar {
-    width: fit-content;
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
     background: var(--surface);
-    border-radius: 10px;
-    padding: 4px;
-    border: 1px solid var(--line);
+    border-top: 1px solid var(--line);
+    z-index: 9999;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 8px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
   }
 
-  .tab {
-    border-radius: 10px;
+  .mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 6px 10px;
+    border-radius: 8px;
   }
 
-  .interest-row {
-    gap: 10px;
+  .mobile-nav-item.active {
+    color: var(--teal);
+    font-weight: 700;
   }
 
-  .micro-copy {
-    width: 100%;
+  .page-stage {
+    padding-bottom: 84px !important;
   }
+}
+
+/* --- SHIMMER SKELETON ANIMATIONS --- */
+.skeleton-card {
+  height: 340px;
+  background: var(--surface);
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.skeleton-box {
+  background: linear-gradient(90deg, var(--line) 25%, #e6e2d8 50%, var(--line) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* --- LIGHTBOX & FILTER DRAWER OVERLAYS --- */
+.overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-modal {
+  max-width: 90vw;
+  max-height: 90vh;
+  position: relative;
+}
+
+.lightbox-img {
+  max-width: 100%;
+  max-height: 85vh;
+  border-radius: 12px;
+  object-fit: contain;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+
+.filter-drawer {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: min(420px, 100vw);
+  background: var(--surface);
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.2);
+  z-index: 10000;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow-y: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {

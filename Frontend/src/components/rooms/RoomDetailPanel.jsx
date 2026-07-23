@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { PriceStamp } from "../common/PriceStamp";
+import { LightboxModal } from "../common/LightboxModal";
 import { useAppContext } from "../../AppContext";
 import { motion } from "framer-motion";
 import { Flag, Star, ShieldCheck, Heart, ArrowLeft, MessageSquare } from "lucide-react";
@@ -21,6 +22,8 @@ export function RoomDetailPanel({
   const [newRating, setNewRating] = useState(5);
   const [newComment, setNewComment] = useState("");
   const [activeImage, setActiveImage] = useState(null);
+  const [isOpenLightbox, setIsOpenLightbox] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const isOwner = currentUser && room && String(room.owner_id) === String(currentUser.id);
 
@@ -111,11 +114,26 @@ export function RoomDetailPanel({
           <img 
             className="gallery-hero" 
             src={activeImage || heroImage} 
-            alt={room.title} 
+            alt={room.title}
+            onClick={() => {
+              setLightboxIndex(
+                galleryImages.findIndex((img) => img.image_url === (activeImage || heroImage))
+              );
+              setIsOpenLightbox(true);
+            }}
+            style={{ cursor: "zoom-in" }}
           />
         ) : (
           <div className="gallery-hero" style={{ minHeight: 300, background: "var(--line)" }} aria-hidden="true" />
         )}
+
+        <LightboxModal 
+          isOpen={isOpenLightbox}
+          images={galleryImages.length ? galleryImages : [heroImage]}
+          currentIndex={lightboxIndex < 0 ? 0 : lightboxIndex}
+          onClose={() => setIsOpenLightbox(false)}
+          onNavigate={(newIdx) => setLightboxIndex(newIdx)}
+        />
         <div className="gallery-strip">
           {galleryImages.length ? (
             galleryImages.map((image) => (

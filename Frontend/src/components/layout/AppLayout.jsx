@@ -77,6 +77,24 @@ export function AppLayout({
         </div>
       </motion.header>
       <main className="page-stage">{children}</main>
+
+      {/* Mobile Sticky Bottom Navigation */}
+      <nav className="mobile-bottom-nav" aria-label="Mobile Navigation">
+        {PRIMARY_NAV.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={`mobile-nav-item ${activeView === item.id ? "active" : ""}`}
+              onClick={() => setActiveView(item.id)}
+            >
+              <Icon size={18} />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }
