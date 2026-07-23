@@ -79,11 +79,17 @@ def verify_otp(request_body: PhoneOTPVerify, request: Request, db: Session = Dep
     access_token = create_access_token(data={"sub": str(user.id)})
     return {"access_token": access_token, "token_type": "bearer"}
 
+from fastapi import BackgroundTasks
+
 @router.post("/email/request-otp", status_code=status.HTTP_200_OK)
-async def request_email_otp(request_body: OTPRequest, request: Request, db: Session = Depends(get_db)):
+def request_email_otp(
+    request_body: OTPRequest, 
+    request: Request, 
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
     """
-    Request an OTP for email login.
-    If the user doesn't exist, they will be created upon verification.
+    Request an OTP for email login (dispatched in background task for fast response).
     """
     check_auth_rate_limit(request_body.email, max_calls=5, window_seconds=3600)
     
@@ -93,8 +99,8 @@ async def request_email_otp(request_body: OTPRequest, request: Request, db: Sess
     # Store OTP in mock cache
     OTP_STORE[request_body.email] = otp
     
-    # Send the real email asynchronously
-    await send_otp_email(email_to=request_body.email, otp_code=otp)
+    # Queue email sending in background task so request returns instantly
+    background_tasks.add_task(send_otp_email, request_body.email, otp)
     
     return {"message": "OTP sent to email successfully"}
 
