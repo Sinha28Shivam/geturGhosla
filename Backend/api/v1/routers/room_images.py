@@ -12,6 +12,33 @@ from db.models import User
 
 router = APIRouter()
 
+def _build_mock_image_url(room_id: UUID, image_token: str) -> str:
+    seed = f"{room_id}-{image_token}".replace(" ", "-")
+    return f"https://picsum.photos/seed/{seed}/1200/800"
+
+@router.post("/{room_id}/images", status_code=status.HTTP_200_OK)
+def request_presigned_upload_url(
+    room_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Returns a mock upload URL and a displayable image URL for MVP flows.
+    """
+    room = get_room(db, room_id=str(room_id))
+    if not room or str(room.owner_id) != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    mock_token = UUID(int=0).hex
+    mock_upload_url = f"https://mock-storage.local/upload/{room_id}/{mock_token}.jpg"
+    mock_file_url = _build_mock_image_url(room_id, mock_token)
+
+    return {
+        "upload_url": mock_upload_url,
+        "file_url": mock_file_url,
+        "message": "Use file_url with confirm for the MVP mock upload flow."
+    }
+
 @router.get("/{room_id}/images", response_model=List[RoomImageRead])
 def read_room_images(
     room_id: UUID,

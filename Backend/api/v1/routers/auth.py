@@ -16,6 +16,7 @@ from crud.crud_user import get_user_by_email, create_user
 from schemas.user import UserCreate, UserRead, UserCreateWithPassword
 from schemas.token import Token
 from db.models import User
+from core.config import settings
 
 router = APIRouter()
 
@@ -33,8 +34,50 @@ def check_auth_rate_limit(email: str, max_calls: int, window_seconds: int):
     calls.append(now)
     AUTH_RATE_LIMITS[email] = calls
 
+class PhoneOTPRequest(BaseModel):
+    phone: str
+
 class OTPRequest(BaseModel):
     email: EmailStr
+
+@router.post("/otp/request", status_code=status.HTTP_200_OK)
+def request_otp(request_body: PhoneOTPRequest, request: Request):
+    """
+    Request OTP via SMS/Phone.
+    """
+    check_auth_rate_limit(request_body.phone, max_calls=5, window_seconds=3600)
+    otp = str(random.randint(100000, 999999))
+    OTP_STORE[request_body.phone] = otp
+    return {"message": "OTP sent successfully"}
+
+class PhoneOTPVerify(BaseModel):
+    phone: str
+    otp: str
+
+@router.post("/otp/verify", response_model=Token)
+def verify_otp(request_body: PhoneOTPVerify, request: Request, db: Session = Depends(get_db)):
+    """
+    Verify OTP for phone auth and issue session/JWT token.
+    """
+    phone = request_body.phone
+    otp = request_body.otp
+    check_auth_rate_limit(phone, max_calls=5, window_seconds=900)
+    
+    stored_otp = OTP_STORE.get(phone)
+    if not stored_otp or stored_otp != otp:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect OTP or OTP expired")
+    
+    del OTP_STORE[phone]
+    
+    user = db.query(User).filter(User.phone == phone).first()
+    if not user:
+        user = User(auth_provider_id=f"phone_{phone}", phone=phone, is_active=True)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        
+    access_token = create_access_token(data={"sub": str(user.id)})
+    return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/email/request-otp", status_code=status.HTTP_200_OK)
 async def request_email_otp(request_body: OTPRequest, request: Request, db: Session = Depends(get_db)):
@@ -196,6 +239,26 @@ def login_email_password(
         )
         
     access_token = create_access_token(data={"sub": str(user.id)})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/admin/login", response_model=Token)
+def login_admin(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+):
+    """
+    Dedicated admin login with static credentials for MVP moderation access.
+    """
+    check_auth_rate_limit(f"admin:{form_data.username}", max_calls=10, window_seconds=900)
+
+    if form_data.username != settings.ADMIN_USERNAME or form_data.password != settings.ADMIN_PASSWORD:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect admin credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    access_token = create_access_token(data={"sub": "admin", "role": "admin"})
     return {"access_token": access_token, "token_type": "bearer"}
 
 

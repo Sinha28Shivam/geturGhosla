@@ -4,6 +4,8 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Room Discovery API"
     SECRET_KEY: str
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = "Admin@123"
 
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
