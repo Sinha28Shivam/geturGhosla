@@ -1,17 +1,20 @@
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from core.config import settings
 
-conf = ConnectionConfig(
-    MAIL_USERNAME=settings.SMTP_USERNAME,
-    MAIL_PASSWORD=settings.SMTP_PASSWORD,
-    MAIL_FROM=settings.SMTP_USERNAME,
-    MAIL_PORT=settings.SMTP_PORT,
-    MAIL_SERVER=settings.SMTP_HOST,
-    MAIL_STARTTLS=settings.SMTP_TLS,
-    MAIL_SSL_TLS=settings.SMTP_SSL,
-    USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True
-)
+def get_mail_config() -> ConnectionConfig:
+    mail_from = settings.SMTP_USERNAME if (settings.SMTP_USERNAME and "@" in settings.SMTP_USERNAME) else "noreply@roomdiscovery.com"
+    mail_username = settings.SMTP_USERNAME if settings.SMTP_USERNAME else "noreply@roomdiscovery.com"
+    return ConnectionConfig(
+        MAIL_USERNAME=mail_username,
+        MAIL_PASSWORD=settings.SMTP_PASSWORD,
+        MAIL_FROM=mail_from,
+        MAIL_PORT=settings.SMTP_PORT,
+        MAIL_SERVER=settings.SMTP_HOST,
+        MAIL_STARTTLS=settings.SMTP_TLS,
+        MAIL_SSL_TLS=settings.SMTP_SSL,
+        USE_CREDENTIALS=bool(settings.SMTP_PASSWORD),
+        VALIDATE_CERTS=True
+    )
 
 async def send_otp_email(email_to: str, otp_code: str):
     """
@@ -43,7 +46,7 @@ async def send_otp_email(email_to: str, otp_code: str):
         return
         
     try:
-        fm = FastMail(conf)
+        fm = FastMail(get_mail_config())
         await fm.send_message(message)
     except Exception as e:
         print(f"WARNING: Email delivery failed or timed out: {e}")
