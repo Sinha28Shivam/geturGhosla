@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { RoomCard } from "../../components/rooms/RoomCard";
+import { InteractiveRoomMap } from "../../components/map/InteractiveRoomMap";
 import { useAppContext } from "../../AppContext";
 import { motion } from "framer-motion";
-import { MapPin, RefreshCw, Search } from "lucide-react";
+import { MapPin, RefreshCw, Map, List, Navigation } from "lucide-react";
 
 const DEFAULT_FILTERS = [
   "Under ₹8k",
@@ -20,6 +21,7 @@ export function BrowseView({ onOpenRoom }) {
   const [rooms, setRooms] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [locationName, setLocationName] = useState("Detecting Location...");
+  const [viewMode, setViewMode] = useState("split"); // 'split' | 'grid' | 'map'
 
   const fetchRoomsForLocation = useCallback(async (formToUse) => {
     setIsLoading(true);
@@ -67,7 +69,6 @@ export function BrowseView({ onOpenRoom }) {
         fetchRoomsForLocation(newForm);
       },
       () => {
-        // Geolocation denied or error -> fallback to default Kanpur coordinates gracefully
         setLocationName("Kanpur, UP");
         fetchRoomsForLocation(FALLBACK_NEARBY);
       },
@@ -76,7 +77,6 @@ export function BrowseView({ onOpenRoom }) {
   }, [fetchRoomsForLocation]);
 
   useEffect(() => {
-    // Automatically trigger location detection on mount
     handleGetLocation();
   }, [handleGetLocation]);
 
@@ -93,8 +93,36 @@ export function BrowseView({ onOpenRoom }) {
       transition={{ duration: 0.3 }}
     >
       <div className="search-area">
-        <p className="location-kicker">📍 NEAR — {locationName.toUpperCase()}</p>
-        <h1>Rooms near {locationName}.</h1>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+          <div>
+            <p className="location-kicker">📍 NEAR — {locationName.toUpperCase()}</p>
+            <h1>Rooms near {locationName}.</h1>
+          </div>
+          
+          <div style={{ display: "flex", gap: 8, background: "var(--surface)", padding: 4, borderRadius: 12, border: "1px solid var(--line)" }}>
+            <button
+              type="button"
+              className={`tab-button ${viewMode === "split" ? "active" : ""}`}
+              onClick={() => setViewMode("split")}
+            >
+              <Navigation size={14} style={{ marginRight: 4, display: "inline", verticalAlign: "middle" }} /> Split View
+            </button>
+            <button
+              type="button"
+              className={`tab-button ${viewMode === "grid" ? "active" : ""}`}
+              onClick={() => setViewMode("grid")}
+            >
+              <List size={14} style={{ marginRight: 4, display: "inline", verticalAlign: "middle" }} /> Cards Only
+            </button>
+            <button
+              type="button"
+              className={`tab-button ${viewMode === "map" ? "active" : ""}`}
+              onClick={() => setViewMode("map")}
+            >
+              <Map size={14} style={{ marginRight: 4, display: "inline", verticalAlign: "middle" }} /> Map Only
+            </button>
+          </div>
+        </div>
 
         <form className="search-row" onSubmit={handleSearch}>
           <div className="search-box">
@@ -164,13 +192,47 @@ export function BrowseView({ onOpenRoom }) {
         </div>
       </div>
 
-      <div className="card-grid">
-        {rooms.length ? (
-          rooms.map((room) => <RoomCard key={room.id} room={room} onSelect={() => onOpenRoom(room.id)} />)
-        ) : (
-          <div className="empty-panel">{isLoading ? "Searching rooms near your location..." : "No active rooms returned for this area."}</div>
-        )}
-      </div>
+      {/* Map & Card Container Views */}
+      {viewMode === "split" && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, alignItems: "start" }}>
+          <div>
+            <InteractiveRoomMap
+              userLat={nearbyForm.lat}
+              userLng={nearbyForm.lng}
+              radiusKm={nearbyForm.radius_km}
+              rooms={rooms}
+              onSelectRoom={onOpenRoom}
+            />
+          </div>
+          <div className="card-grid" style={{ gridTemplateColumns: "1fr" }}>
+            {rooms.length ? (
+              rooms.map((room) => <RoomCard key={room.id} room={room} onSelect={() => onOpenRoom(room.id)} />)
+            ) : (
+              <div className="empty-panel">{isLoading ? "Searching rooms near your location..." : "No active rooms returned for this area."}</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {viewMode === "grid" && (
+        <div className="card-grid">
+          {rooms.length ? (
+            rooms.map((room) => <RoomCard key={room.id} room={room} onSelect={() => onOpenRoom(room.id)} />)
+          ) : (
+            <div className="empty-panel">{isLoading ? "Searching rooms near your location..." : "No active rooms returned for this area."}</div>
+          )}
+        </div>
+      )}
+
+      {viewMode === "map" && (
+        <InteractiveRoomMap
+          userLat={nearbyForm.lat}
+          userLng={nearbyForm.lng}
+          radiusKm={nearbyForm.radius_km}
+          rooms={rooms}
+          onSelectRoom={onOpenRoom}
+        />
+      )}
     </motion.section>
   );
 }
