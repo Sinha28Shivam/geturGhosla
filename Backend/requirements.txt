@@ -6,8 +6,10 @@ pydantic-settings>=2.0.0
 python-dotenv>=1.0.0
 GeoAlchemy2>=0.14.0
 python-jose[cryptography]>=3.3.0
+bcrypt>=4.0.0
 python-multipart
 slowapi
 fastapi-mail
 email-validator>=2.0.0
 opencensus-ext-azure>=1.1.0
+pywebpush>=1.14.0
