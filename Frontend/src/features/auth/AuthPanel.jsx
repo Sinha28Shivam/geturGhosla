@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useAppContext } from "../../AppContext";
+import { motion, AnimatePresence } from "framer-motion";
 
 const MODES = [
+  { id: "phone", label: "Phone OTP" },
   { id: "otp", label: "Email OTP" },
   { id: "login", label: "Password" },
   { id: "signup", label: "Sign up" },
@@ -10,12 +12,10 @@ const MODES = [
 export function AuthPanel() {
   const { api, announce, setToken, loadCurrentUser } = useAppContext();
   
-  const [mode, setMode] = useState("otp");
-  
-  // "request" | "verify" step for OTP and Signup flows
+  const [mode, setMode] = useState("phone");
   const [step, setStep] = useState("request");
 
-  // Form State
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
@@ -24,18 +24,47 @@ export function AuthPanel() {
   const resetFormState = (newMode) => {
     setMode(newMode);
     setStep("request");
+    setPhone("");
     setEmail("");
     setPassword("");
     setOtp("");
   };
 
-  // HANDLERS
-  const handleRequestOtp = async (event) => {
+  const handleRequestPhoneOtp = async (event) => {
+    event.preventDefault();
+    setIsLoading(true);
+    try {
+      const result = await api.auth.requestPhoneOtp(phone);
+      announce(result.message || "Phone OTP sent.");
+      setStep("verify");
+    } catch (error) {
+      announce(`Phone OTP failed: ${error.message}`, "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyPhoneOtp = async (event) => {
+    event.preventDefault();
+    setIsLoading(true);
+    try {
+      const result = await api.auth.verifyPhoneOtp(phone, otp);
+      setToken(result.access_token);
+      await loadCurrentUser("auth");
+      announce("Signed in with Phone OTP.");
+    } catch (error) {
+      announce(`Phone verification failed: ${error.message}`, "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRequestEmailOtp = async (event) => {
     event.preventDefault();
     setIsLoading(true);
     try {
       const result = await api.auth.requestOtp(email);
-      announce(result.message || "OTP sent.");
+      announce(result.message || "Email OTP sent.");
       setStep("verify");
     } catch (error) {
       announce(`OTP request failed: ${error.message}`, "error");
@@ -44,47 +73,16 @@ export function AuthPanel() {
     }
   };
 
-  const handleVerifyOtp = async (event) => {
+  const handleVerifyEmailOtp = async (event) => {
     event.preventDefault();
     setIsLoading(true);
     try {
       const result = await api.auth.verifyOtp(email, otp);
       setToken(result.access_token);
       await loadCurrentUser("auth");
-      announce("Signed in with OTP.");
+      announce("Signed in with Email OTP.");
     } catch (error) {
       announce(`OTP verification failed: ${error.message}`, "error");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSignup = async (event) => {
-    event.preventDefault();
-    setIsLoading(true);
-    try {
-      const result = await api.auth.signup({ email, password });
-      announce(result.message || "Account created. Please verify OTP.");
-      setStep("verify");
-    } catch (error) {
-      announce(`Signup failed: ${error.message}`, "error");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleVerifySignup = async (event) => {
-    event.preventDefault();
-    setIsLoading(true);
-    try {
-      const result = await api.auth.verifySignup(email, otp);
-      announce(result.message || "Account activated. Please sign in.");
-      // Auto switch to login after activation
-      resetFormState("login");
-      // Keep email populated for convenience
-      setEmail(email); 
-    } catch (error) {
-      announce(`Activation failed: ${error.message}`, "error");
     } finally {
       setIsLoading(false);
     }
@@ -105,8 +103,27 @@ export function AuthPanel() {
     }
   };
 
+  const handleSignup = async (event) => {
+    event.preventDefault();
+    setIsLoading(true);
+    try {
+      const result = await api.auth.signup({ email, password });
+      announce(result.message || "Account created. Please verify OTP.");
+      setStep("verify");
+    } catch (error) {
+      announce(`Signup failed: ${error.message}`, "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="auth-card">
+    <motion.div 
+      className="auth-card"
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
       <div className="segmented-control" role="tablist" aria-label="Authentication mode">
         {MODES.map((item) => (
           <button
@@ -123,164 +140,201 @@ export function AuthPanel() {
         ))}
       </div>
 
-      {mode === "otp" && (
-        <div className="auth-stack">
-          {step === "request" ? (
-            <>
-              <div className="section-copy">
-                <h2>Welcome back</h2>
-                <p>Enter your email and we&apos;ll send a one-time code, no password needed.</p>
-              </div>
-              <form className="auth-form" onSubmit={handleRequestOtp}>
-                <label className="field">
-                  <span>Email</span>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    autoComplete="email"
-                    required
-                  />
-                </label>
-                <button type="submit" className="primary-button" disabled={isLoading}>
-                  {isLoading ? "Sending..." : "Send OTP"}
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              <div className="section-copy">
-                <h2>Verify Email</h2>
-                <p>Enter the 6-digit code sent to <strong>{email}</strong></p>
-                <button 
-                  type="button" 
-                  className="ghost-button" 
-                  style={{ padding: 0, height: 'auto', textDecoration: 'underline', marginTop: '0.5rem' }} 
-                  onClick={() => setStep("request")}
-                >
-                  Change email address
-                </button>
-              </div>
-              <form className="auth-form" onSubmit={handleVerifyOtp}>
-                <label className="field">
-                  <span>OTP Code</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]{6}"
-                    maxLength="6"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    required
-                    autoFocus
-                  />
-                </label>
-                <button type="submit" className="primary-button" disabled={isLoading}>
-                   {isLoading ? "Verifying..." : "Continue with Email"}
-                </button>
-              </form>
-            </>
-          )}
-        </div>
-      )}
+      <AnimatePresence mode="wait">
+        {mode === "phone" && (
+          <motion.div
+            key="phone"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            transition={{ duration: 0.2 }}
+            className="auth-stack"
+          >
+            {step === "request" ? (
+              <>
+                <div className="section-copy">
+                  <h2>Phone Authentication</h2>
+                  <p>Enter your 10-digit mobile number for SMS OTP login.</p>
+                </div>
+                <form className="auth-form" onSubmit={handleRequestPhoneOtp}>
+                  <label className="field">
+                    <span>Phone Number</span>
+                    <input
+                      type="tel"
+                      placeholder="e.g. +919876543210"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      required
+                    />
+                  </label>
+                  <button type="submit" className="primary-button" disabled={isLoading}>
+                    {isLoading ? "Sending OTP..." : "Send Phone OTP"}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <div className="section-copy">
+                  <h2>Verify Phone OTP</h2>
+                  <p>Enter 6-digit SMS code sent to <strong>{phone}</strong></p>
+                  <button type="button" className="ghost-button" onClick={() => setStep("request")}>Change number</button>
+                </div>
+                <form className="auth-form" onSubmit={handleVerifyPhoneOtp}>
+                  <label className="field">
+                    <span>OTP Code</span>
+                    <input
+                      type="text"
+                      maxLength="6"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      required
+                      autoFocus
+                    />
+                  </label>
+                  <button type="submit" className="primary-button" disabled={isLoading}>
+                    {isLoading ? "Verifying..." : "Verify & Sign In"}
+                  </button>
+                </form>
+              </>
+            )}
+          </motion.div>
+        )}
 
-      {mode === "login" && (
-        <div className="auth-stack">
-          <div className="section-copy">
-            <h2>Sign in</h2>
-            <p>Use your password to sign in to your account.</p>
-          </div>
-          <form className="auth-form" onSubmit={handleLogin}>
-            <label className="field">
-              <span>Email</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                required
-              />
-            </label>
-            <label className="field">
-              <span>Password</span>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                required
-              />
-            </label>
-            <button type="submit" className="primary-button" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign in"}
-            </button>
-          </form>
-        </div>
-      )}
+        {mode === "otp" && (
+          <motion.div
+            key="otp"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            transition={{ duration: 0.2 }}
+            className="auth-stack"
+          >
+            {step === "request" ? (
+              <>
+                <div className="section-copy">
+                  <h2>Welcome back</h2>
+                  <p>Enter your email and we&apos;ll send a one-time code.</p>
+                </div>
+                <form className="auth-form" onSubmit={handleRequestEmailOtp}>
+                  <label className="field">
+                    <span>Email</span>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </label>
+                  <button type="submit" className="primary-button" disabled={isLoading}>
+                    {isLoading ? "Sending..." : "Send OTP"}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <div className="section-copy">
+                  <h2>Verify Email</h2>
+                  <p>Enter the code sent to <strong>{email}</strong></p>
+                </div>
+                <form className="auth-form" onSubmit={handleVerifyEmailOtp}>
+                  <label className="field">
+                    <span>OTP Code</span>
+                    <input
+                      type="text"
+                      maxLength="6"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      required
+                    />
+                  </label>
+                  <button type="submit" className="primary-button" disabled={isLoading}>
+                    {isLoading ? "Verifying..." : "Continue"}
+                  </button>
+                </form>
+              </>
+            )}
+          </motion.div>
+        )}
 
-      {mode === "signup" && (
-        <div className="auth-stack">
-          {step === "request" ? (
-            <>
-              <div className="section-copy">
-                <h2>Create account</h2>
-                <p>Create a password account, then activate it using the email OTP route.</p>
-              </div>
-              <form className="auth-form" onSubmit={handleSignup}>
-                <label className="field">
-                  <span>Email</span>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    autoComplete="email"
-                    required
-                  />
-                </label>
-                <label className="field">
-                  <span>Password</span>
-                  <input
-                    type="password"
-                    minLength="8"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="new-password"
-                    required
-                  />
-                </label>
-                <button type="submit" className="primary-button" disabled={isLoading}>
-                  {isLoading ? "Creating..." : "Create account"}
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              <div className="section-copy">
-                <h2>Activate account</h2>
-                <p>Enter the 6-digit code sent to <strong>{email}</strong> to activate your account.</p>
-              </div>
-              <form className="auth-form" onSubmit={handleVerifySignup}>
-                <label className="field">
-                  <span>OTP Code</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]{6}"
-                    maxLength="6"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    required
-                    autoFocus
-                  />
-                </label>
-                <button type="submit" className="primary-button" disabled={isLoading}>
-                  {isLoading ? "Activating..." : "Activate account"}
-                </button>
-              </form>
-            </>
-          )}
-        </div>
-      )}
-    </div>
+        {mode === "login" && (
+          <motion.div
+            key="login"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            transition={{ duration: 0.2 }}
+            className="auth-stack"
+          >
+            <div className="section-copy">
+              <h2>Password Login</h2>
+              <p>Sign in with email and password.</p>
+            </div>
+            <form className="auth-form" onSubmit={handleLogin}>
+              <label className="field">
+                <span>Email</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>Password</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </label>
+              <button type="submit" className="primary-button" disabled={isLoading}>
+                {isLoading ? "Signing in..." : "Sign in"}
+              </button>
+            </form>
+          </motion.div>
+        )}
+
+        {mode === "signup" && (
+          <motion.div
+            key="signup"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            transition={{ duration: 0.2 }}
+            className="auth-stack"
+          >
+            <div className="section-copy">
+              <h2>Create Account</h2>
+              <p>Sign up with email and password.</p>
+            </div>
+            <form className="auth-form" onSubmit={handleSignup}>
+              <label className="field">
+                <span>Email</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>Password</span>
+                <input
+                  type="password"
+                  minLength="8"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </label>
+              <button type="submit" className="primary-button" disabled={isLoading}>
+                {isLoading ? "Creating..." : "Create account"}
+              </button>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

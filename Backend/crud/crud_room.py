@@ -4,6 +4,7 @@ from geoalchemy2 import Geometry
 from typing import Optional, List
 from db.models import Room, RoomStatusEnum, RoomTypeEnum
 from schemas.room import RoomCreate, RoomUpdate
+from crud.crud_room_image import _normalize_mock_image_url
 
 
 def _hydrate_room_fields(db: Session, room: Room, lat: float = None, lng: float = None, distance_km: float = None) -> Room:
@@ -29,6 +30,8 @@ def _hydrate_room_fields(db: Session, room: Room, lat: float = None, lng: float 
             image.created_at,
         ),
     )
+    for image in ordered_images:
+        image.image_url = _normalize_mock_image_url(str(room.id), image.image_url)
     room.images = ordered_images
     return room
 

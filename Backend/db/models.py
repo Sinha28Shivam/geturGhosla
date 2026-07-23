@@ -24,11 +24,42 @@ class RoomStatusEnum(str, enum.Enum):
     pending_review = 'pending_review'
     flagged = 'flagged'
 
+import enum
+from sqlalchemy import Column, String, Boolean, Text, Numeric, Integer, SmallInteger, ForeignKey, Enum, CheckConstraint, UniqueConstraint, DateTime, func
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+from geoalchemy2 import Geography
+import uuid
+
+from db.base import Base
+
+# --- ENUMS ---
+class RoomTypeEnum(str, enum.Enum):
+    single = 'single'
+    shared = 'shared'
+    _1rk = '1rk'
+    _1bhk = '1bhk'
+    _2bhk = '2bhk'
+    _3bhk_plus = '3bhk_plus'
+    pg = 'pg'
+
+class RoomStatusEnum(str, enum.Enum):
+    active = 'active'
+    rented = 'rented'
+    inactive = 'inactive'
+    pending_review = 'pending_review'
+    flagged = 'flagged'
+
 class InterestStatusEnum(str, enum.Enum):
     pending = 'pending'
     contacted = 'contacted'
     closed = 'closed'
     spam = 'spam'
+
+class ReportStatusEnum(str, enum.Enum):
+    open = 'open'
+    resolved = 'resolved'
+    dismissed = 'dismissed'
 
 # --- MODELS ---
 class User(Base):
@@ -54,6 +85,9 @@ class User(Base):
     # Relationships
     rooms = relationship("Room", back_populates="owner", cascade="all, delete-orphan")
     interests = relationship("Interest", back_populates="seeker", cascade="all, delete-orphan")
+    reports = relationship("Report", back_populates="reporter", cascade="all, delete-orphan")
+    reviews = relationship("Review", back_populates="reviewer", cascade="all, delete-orphan")
+    saved_searches = relationship("SavedSearch", back_populates="user", cascade="all, delete-orphan")
 
 
 class Room(Base):
@@ -94,6 +128,8 @@ class Room(Base):
     owner = relationship("User", back_populates="rooms")
     images = relationship("RoomImage", back_populates="room", cascade="all, delete-orphan")
     interests = relationship("Interest", back_populates="room", cascade="all, delete-orphan")
+    reports = relationship("Report", back_populates="room", cascade="all, delete-orphan")
+    reviews = relationship("Review", back_populates="room", cascade="all, delete-orphan")
 
     @property
     def primary_image_url(self):
@@ -142,3 +178,58 @@ class Interest(Base):
     # Relationships
     room = relationship("Room", back_populates="interests")
     seeker = relationship("User", back_populates="interests")
+
+
+class Report(Base):
+    __tablename__ = 'reports'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    room_id = Column(UUID(as_uuid=True), ForeignKey('rooms.id', ondelete='CASCADE'), nullable=False, index=True)
+    reporter_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    reason = Column(Text, nullable=False)
+    status = Column(Enum(ReportStatusEnum), nullable=False, default=ReportStatusEnum.open, index=True)
+    action_taken = Column(String(100), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    # Relationships
+    room = relationship("Room", back_populates="reports")
+    reporter = relationship("User", back_populates="reports")
+
+
+class Review(Base):
+    __tablename__ = 'reviews'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    room_id = Column(UUID(as_uuid=True), ForeignKey('rooms.id', ondelete='CASCADE'), nullable=False, index=True)
+    reviewer_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    rating = Column(SmallInteger, nullable=False)
+    comment = Column(Text, nullable=True)
+    is_verified = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('room_id', 'reviewer_id', name='uq_review_per_user_room'),
+        CheckConstraint('rating >= 1 AND rating <= 5', name='chk_review_rating_range'),
+    )
+
+    # Relationships
+    room = relationship("Room", back_populates="reviews")
+    reviewer = relationship("User", back_populates="reviews")
+
+
+class SavedSearch(Base):
+    __tablename__ = 'saved_searches'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    city = Column(String(100), nullable=True)
+    room_type = Column(Enum(RoomTypeEnum), nullable=True)
+    min_rent = Column(Numeric(10, 2), nullable=True)
+    max_rent = Column(Numeric(10, 2), nullable=True)
+    lat = Column(Numeric(10, 8), nullable=True)
+    lng = Column(Numeric(11, 8), nullable=True)
+    radius_km = Column(Numeric(5, 2), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    # Relationships
+    user = relationship("User", back_populates="saved_searches")

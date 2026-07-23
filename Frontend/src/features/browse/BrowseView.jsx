@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { RoomCard } from "../../components/rooms/RoomCard";
 import { useAppContext } from "../../AppContext";
+import { motion } from "framer-motion";
+import { MapPin, RefreshCw, Search } from "lucide-react";
 
 const DEFAULT_FILTERS = [
   "Under ₹8k",
@@ -9,48 +11,33 @@ const DEFAULT_FILTERS = [
   "Verified",
 ];
 
-const DEFAULT_NEARBY = { lat: "26.4499", lng: "80.3319", radius_km: "5", limit: "12" };
+const FALLBACK_NEARBY = { lat: "26.4499", lng: "80.3319", radius_km: "5", limit: "12" };
 
 export function BrowseView({ onOpenRoom }) {
   const { api, announce } = useAppContext();
   
-  const [nearbyForm, setNearbyForm] = useState(DEFAULT_NEARBY);
+  const [nearbyForm, setNearbyForm] = useState(FALLBACK_NEARBY);
   const [rooms, setRooms] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [locationName, setLocationName] = useState("Kanpur, UP");
+  const [locationName, setLocationName] = useState("Detecting Location...");
 
-  useEffect(() => {
-    // Initial fetch
-    let isMounted = true;
-    api.rooms
-      .nearby(DEFAULT_NEARBY)
-      .then((results) => {
-        if (isMounted) setRooms(results);
-      })
-      .catch(() => {});
-    return () => { isMounted = false; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleSearch = async (event, overrideForm = null) => {
-    if (event) event.preventDefault();
+  const fetchRoomsForLocation = useCallback(async (formToUse) => {
     setIsLoading(true);
-    const formToUse = overrideForm || nearbyForm;
     try {
       const results = await api.rooms.nearby(formToUse);
       setRooms(results);
-      announce(`Loaded ${results.length} rooms.`);
     } catch (error) {
       setRooms([]);
       announce(`Nearby search failed: ${error.message}`, "error");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [api.rooms, announce]);
 
-  const handleGetLocation = () => {
+  const handleGetLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      announce("Geolocation is not supported by your browser.", "error");
+      setLocationName("Kanpur, UP");
+      fetchRoomsForLocation(FALLBACK_NEARBY);
       return;
     }
     
@@ -59,7 +46,7 @@ export function BrowseView({ onOpenRoom }) {
       (position) => {
         const { latitude, longitude } = position.coords;
         const newForm = {
-          ...nearbyForm,
+          ...FALLBACK_NEARBY,
           lat: latitude.toString(),
           lng: longitude.toString(),
         };
@@ -72,37 +59,46 @@ export function BrowseView({ onOpenRoom }) {
               const state = data.principalSubdivisionCode ? data.principalSubdivisionCode.split("-").pop() : "";
               setLocationName(`${data.city}${state ? `, ${state}` : ""}`);
             } else {
-              setLocationName("you");
+              setLocationName("Your Location");
             }
           })
-          .catch(() => setLocationName("you"));
+          .catch(() => setLocationName("Your Location"));
 
-        handleSearch(null, newForm);
+        fetchRoomsForLocation(newForm);
       },
-      (error) => {
-        setIsLoading(false);
-        announce(`Geolocation failed: ${error.message}`, "error");
+      () => {
+        // Geolocation denied or error -> fallback to default Kanpur coordinates gracefully
+        setLocationName("Kanpur, UP");
+        fetchRoomsForLocation(FALLBACK_NEARBY);
       },
-      { timeout: 10000 }
+      { timeout: 8000 }
     );
+  }, [fetchRoomsForLocation]);
+
+  useEffect(() => {
+    // Automatically trigger location detection on mount
+    handleGetLocation();
+  }, [handleGetLocation]);
+
+  const handleSearch = async (event) => {
+    if (event) event.preventDefault();
+    fetchRoomsForLocation(nearbyForm);
   };
 
   return (
-    <section className="page-section">
+    <motion.section 
+      className="page-section"
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
       <div className="search-area">
         <p className="location-kicker">📍 NEAR — {locationName.toUpperCase()}</p>
         <h1>Rooms near {locationName}.</h1>
-        <h2 className="mobile-heading">Rooms near {locationName}.</h2>
-        
-        <div style={{ marginBottom: "16px" }}>
-          <button type="button" className="ghost-button" onClick={handleGetLocation} disabled={isLoading}>
-             📍 Use my current location
-          </button>
-        </div>
 
         <form className="search-row" onSubmit={handleSearch}>
           <div className="search-box">
-            <span aria-hidden="true">⌕</span>
+            <MapPin size={18} color="var(--teal)" />
             <input
               type="text"
               value={`${nearbyForm.lat}, ${nearbyForm.lng}`}
@@ -115,10 +111,15 @@ export function BrowseView({ onOpenRoom }) {
               {chip}
             </button>
           ))}
+          <button type="button" className="ghost-button" onClick={handleGetLocation} disabled={isLoading} title="Re-detect location">
+            <RefreshCw size={16} className={isLoading ? "spin" : ""} style={{ marginRight: 6, display: "inline-block", verticalAlign: "middle" }} />
+            Detect Again
+          </button>
           <button type="submit" className="primary-button" disabled={isLoading}>
             {isLoading ? "Searching..." : "Refresh"}
           </button>
         </form>
+
         <div className="search-controls">
           <label className="field">
             <span>Latitude</span>
@@ -167,9 +168,9 @@ export function BrowseView({ onOpenRoom }) {
         {rooms.length ? (
           rooms.map((room) => <RoomCard key={room.id} room={room} onSelect={() => onOpenRoom(room.id)} />)
         ) : (
-          <div className="empty-panel">{isLoading ? "Searching..." : "No active rooms returned yet for this search."}</div>
+          <div className="empty-panel">{isLoading ? "Searching rooms near your location..." : "No active rooms returned for this area."}</div>
         )}
       </div>
-    </section>
+    </motion.section>
   );
 }
