@@ -42,5 +42,12 @@ async def send_otp_email(email_to: str, otp_code: str):
         print("WARNING: SMTP credentials not set in .env. Mock email sent instead.")
         return
         
-    fm = FastMail(conf)
-    await fm.send_message(message)
+    try:
+        fm = FastMail(conf)
+        await fm.send_message(message)
+    except Exception as e:
+        print(f"WARNING: Email delivery failed or timed out: {e}")
+        print(f"--- FALLBACK MOCK EMAIL SENDER ---")
+        print(f"To: {email_to}")
+        print(f"Your OTP is: {otp_code}")
+        print(f"---------------------------------")
