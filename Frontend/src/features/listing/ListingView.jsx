@@ -221,30 +221,37 @@ export function ListingView() {
     return data.secure_url;
   };
 
+  const [imageFiles, setImageFiles] = useState([]);
+
   const handleConfirmImage = async (event) => {
     event.preventDefault();
     if (!imageForm.room_id) {
       announce("Please provide a Room ID for the image.", "error");
       return;
     }
-    if (!imageFile) {
-      announce("Please select an image file first.", "error");
+    if (!imageFiles.length) {
+      announce("Please select at least one image file first.", "error");
       return;
     }
     setIsLoading(true);
+    let successCount = 0;
     try {
-      const imageUrl = await uploadImageToCloudinary(imageFile);
-      const image = await api.rooms.confirmImage(
-        imageForm.room_id,
-        imageUrl,
-        imageForm.is_primary
-      );
-      setImageFile(null);
-      setImageResult(image);
+      for (let i = 0; i < imageFiles.length; i++) {
+        const file = imageFiles[i];
+        const isPrimary = i === 0 && imageForm.is_primary === "true";
+        const imageUrl = await uploadImageToCloudinary(file);
+        await api.rooms.confirmImage(
+          imageForm.room_id,
+          imageUrl,
+          isPrimary ? "true" : "false"
+        );
+        successCount++;
+      }
+      setImageFiles([]);
       await loadManagedImages(imageForm.room_id);
-      announce("Photo successfully added.");
+      announce(`Successfully uploaded ${successCount} photo(s).`);
     } catch (error) {
-      announce(`Photo upload failed: ${error.message}`, "error");
+      announce(`Photo upload failed after ${successCount} photos: ${error.message}`, "error");
     } finally {
       setIsLoading(false);
     }
@@ -497,12 +504,16 @@ export function ListingView() {
             <form className="image-confirm-form" onSubmit={handleConfirmImage}>
               <div className="management-actions">
                 <label className="field">
-                  <span>Select Image</span>
+                  <span>Select Images (Multiple allowed)</span>
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => setImageFile(e.target.files[0] || null)}
+                    multiple
+                    onChange={(e) => setImageFiles(Array.from(e.target.files || []))}
                   />
+                  {imageFiles.length > 0 && (
+                    <span className="mono-meta">{imageFiles.length} file(s) selected</span>
+                  )}
                 </label>
                 <label className="field">
                   <span>Is this the primary image?</span>

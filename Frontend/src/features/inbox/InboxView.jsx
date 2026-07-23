@@ -11,7 +11,11 @@ function InterestRows({ items, title }) {
       {items.length ? (
         items.map((item) => (
           <article key={item.id} className="interest-row">
-            <div className="interest-avatar" aria-hidden="true" />
+            {item.seeker?.profile_photo_url ? (
+              <img src={item.seeker.profile_photo_url} alt="Seeker profile" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} />
+            ) : (
+              <div className="interest-avatar" aria-hidden="true" />
+            )}
             <div className="interest-main">
               <strong>{item.seeker?.full_name || "Interest"}</strong>
               <span>{item.room?.title || item.room_id}</span>

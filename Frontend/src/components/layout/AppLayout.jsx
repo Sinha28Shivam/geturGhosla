@@ -53,9 +53,22 @@ export function AppLayout({
             <User size={16} style={{ marginRight: 6, display: "inline-block", verticalAlign: "middle" }} />
             Profile
           </button>
-          <div className="session-chip" aria-live="polite">
-            <strong>{currentUser?.full_name || "Signed in"}</strong>
-            <span>{currentUser?.email || currentUser?.phone || "Authenticated session"}</span>
+          <div className="session-chip" style={{ display: "flex", alignItems: "center", gap: 10 }} aria-live="polite">
+            {currentUser?.profile_photo_url ? (
+              <img 
+                src={currentUser.profile_photo_url} 
+                alt="User avatar" 
+                style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} 
+              />
+            ) : (
+              <div style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--teal-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                <User size={18} color="var(--teal)" />
+              </div>
+            )}
+            <div style={{ display: "grid", gap: 2 }}>
+              <strong>{currentUser?.full_name || "Signed in"}</strong>
+              <span>{currentUser?.email || currentUser?.phone || "Authenticated session"}</span>
+            </div>
           </div>
           <button type="button" className="utility-link" onClick={onLogout}>
             <LogOut size={16} style={{ marginRight: 4, display: "inline-block", verticalAlign: "middle" }} />

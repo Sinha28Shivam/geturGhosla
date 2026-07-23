@@ -227,13 +227,69 @@ button {
 
 .top-nav {
   min-height: 82px;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 24px;
-  padding: 20px 48px;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
   border: 1px solid var(--line);
   background: var(--surface);
+}
+
+.top-nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.top-nav-utilities {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-stage {
+  padding: 24px min(4vw, 48px);
+  display: grid;
+  gap: 24px;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.search-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.room-detail-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+  gap: 32px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .room-detail-page {
+    grid-template-columns: 1fr;
+  }
+  .auth-screen {
+    grid-template-columns: 1fr;
+  }
+  .auth-hero-panel {
+    display: none;
+  }
+  .auth-form-panel {
+    padding: 32px 20px;
+  }
 }
 
 .app-header {
@@ -689,15 +745,21 @@ button {
   align-items: start;
 }
 
-.upload-column,
-.listing-form,
-.inbox-panel,
-.profile-card,
-.profile-form,
-.moderation-form,
-.detail-card {
+.inbox-panel {
   background: var(--surface);
-  flex-wrap: wrap;
+  padding: 24px;
+  display: grid;
+  gap: 16px;
+}
+
+.interest-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
 }
 
 .drop-zone {
@@ -792,7 +854,10 @@ button {
 }
 
 .gallery-hero {
-  min-height: 460px;
+  width: 100%;
+  max-height: 440px;
+  object-fit: cover;
+  border-radius: 16px;
 }
 
 .detail-card {
