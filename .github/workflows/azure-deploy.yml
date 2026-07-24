@@ -5,11 +5,13 @@ on:
     branches:
       - main
       - master
+      - shivam/devBranch
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
       - main
       - master
+      - shivam/devBranch
 
 jobs:
   # -------------------------------------------------------------
