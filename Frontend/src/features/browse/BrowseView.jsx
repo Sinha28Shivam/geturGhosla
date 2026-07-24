@@ -208,7 +208,7 @@ export function BrowseView({ onOpenRoom }) {
 
       {/* Map & Card Container Views */}
       {viewMode === "split" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, alignItems: "start" }}>
+        <div className="split-view-container" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, alignItems: "start" }}>
           <div>
             <InteractiveRoomMap
               userLat={nearbyForm.lat}

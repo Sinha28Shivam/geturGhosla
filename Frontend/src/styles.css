@@ -551,31 +551,39 @@ button {
 
 .toast-notification {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  background: var(--surface);
-  color: var(--text);
-  padding: 16px 24px;
+  top: 20px;
+  right: 20px;
+  background: #181614;
+  color: #ffffff;
+  padding: 14px 20px;
   border-radius: 12px;
-  border: 1px solid var(--line);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  font-family: "Space Mono", monospace;
-  font-size: 0.85rem;
-  z-index: 9999;
-  animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 3.7s forwards;
-  max-width: 400px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  font-family: "Inter", sans-serif;
+  font-size: 0.88rem;
+  font-weight: 500;
+  z-index: 99999;
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1), fadeOut 0.3s ease-in 3.7s forwards;
+  max-width: min(420px, calc(100vw - 32px));
+  word-break: break-word;
 }
 
 .toast-notification.error {
-  border-left: 4px solid var(--danger);
+  border-left: 5px solid #e5484d;
+  background: #2a1415;
+  color: #ffe6e6;
 }
 
 .toast-notification.success {
-  border-left: 4px solid var(--teal);
+  border-left: 5px solid #30a46c;
+  background: #0f291e;
+  color: #e6f7ed;
 }
 
 .toast-notification.info {
-  border-left: 4px solid var(--accent);
+  border-left: 5px solid #0091ff;
+  background: #11253e;
+  color: #e6f4ff;
 }
 
 @keyframes slideIn {
@@ -1204,6 +1212,30 @@ button {
 
   .page-stage {
     padding: 16px 12px 90px !important;
+  }
+
+  .split-view-container {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Hide interactive map on mobile browsers for optimal UI/UX */
+  .leaflet-container,
+  .map-container,
+  [data-testid="interactive-map"],
+  .map-wrapper {
+    display: none !important;
+  }
+
+  /* Mobile Toast Notifications alignment */
+  .toast-notification {
+    top: 16px;
+    left: 16px;
+    right: 16px;
+    max-width: calc(100vw - 32px);
+    margin: 0 auto;
+    font-size: 0.82rem;
+    padding: 12px 16px;
+    text-align: center;
   }
 
   .search-controls,
