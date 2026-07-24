@@ -34,6 +34,8 @@ html,
 body,
 #root {
   min-height: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 body {
@@ -41,6 +43,8 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: "Inter", sans-serif;
+  overflow-x: hidden;
+  word-break: break-word;
 }
 
 button,
@@ -100,8 +104,9 @@ button {
 }
 
 .auth-hero-copy h1 {
-  font-size: clamp(3rem, 4vw, 4.25rem);
-  line-height: 1.03;
+  font-size: clamp(2rem, 5vw, 4.25rem);
+  line-height: 1.05;
+  word-wrap: break-word;
 }
 
 .auth-hero-copy p {
@@ -113,15 +118,16 @@ button {
 }
 
 .auth-form-panel {
-  padding: 48px;
+  padding: 24px 16px;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
 }
 
 .auth-card {
   width: min(520px, 100%);
-  padding: 36px 32px;
+  padding: 28px 20px;
   display: grid;
   gap: 24px;
   border: 1px solid var(--line);
@@ -134,7 +140,7 @@ button {
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
-  padding: 32px;
+  padding: 24px 16px;
   display: grid;
   gap: 24px;
 }
@@ -214,18 +220,21 @@ button {
   max-width: var(--max-width);
   margin: 0 auto;
   padding-bottom: 48px;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .top-nav {
-  min-height: 82px;
+  min-height: 72px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 16px 24px;
+  gap: 12px;
+  padding: 12px 16px;
   border: 1px solid var(--line);
   background: var(--surface);
+  width: 100%;
 }
 
 .top-nav-links {
@@ -240,13 +249,17 @@ button {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  max-width: 100%;
 }
 
 .page-stage {
-  padding: 24px min(4vw, 48px);
+  padding: 24px min(4vw, 32px) 0;
   display: grid;
   gap: 24px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .card-grid {
@@ -414,14 +427,41 @@ button {
   gap: 10px;
 }
 
+.session-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.4rem 0.6rem;
+  border-radius: 12px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.session-chip strong {
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-chip span {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .search-box {
-  width: 420px;
+  width: 100%;
   max-width: 100%;
   min-height: 48px;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 18px;
+  padding: 0 14px;
   border: 1.5px solid var(--line);
   border-radius: 10px;
   background: var(--surface);
@@ -1109,7 +1149,20 @@ button {
 }
 
 @media (max-width: 768px) {
+  .top-nav {
+    padding: 12px 16px;
+  }
+
   .top-nav-links {
+    display: none !important;
+  }
+
+  .top-nav-utilities {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .session-chip {
     display: none !important;
   }
 
@@ -1125,7 +1178,7 @@ button {
     z-index: 9999;
     justify-content: space-around;
     align-items: center;
-    padding: 0 8px;
+    padding: 0 4px;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
   }
 
@@ -1133,14 +1186,15 @@ button {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 3px;
+    gap: 2px;
     background: transparent;
     border: none;
     color: var(--text-muted);
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 500;
-    padding: 6px 10px;
+    padding: 6px 8px;
     border-radius: 8px;
+    flex: 1;
   }
 
   .mobile-nav-item.active {
@@ -1149,7 +1203,20 @@ button {
   }
 
   .page-stage {
-    padding-bottom: 84px !important;
+    padding: 16px 12px 90px !important;
+  }
+
+  .search-controls,
+  .listing-form,
+  .moderation-form,
+  .status-form,
+  .card-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .room-detail-page {
+    grid-template-columns: 1fr !important;
+    gap: 16px;
   }
 }
 
