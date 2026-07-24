@@ -304,34 +304,62 @@ export function AuthPanel() {
             transition={{ duration: 0.2 }}
             className="auth-stack"
           >
-            <div className="section-copy">
-              <h2>Create Account</h2>
-              <p>Sign up with email and password.</p>
-            </div>
-            <form className="auth-form" onSubmit={handleSignup}>
-              <label className="field">
-                <span>Email</span>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </label>
-              <label className="field">
-                <span>Password</span>
-                <input
-                  type="password"
-                  minLength="8"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </label>
-              <button type="submit" className="primary-button" disabled={isLoading}>
-                {isLoading ? "Creating..." : "Create account"}
-              </button>
-            </form>
+            {step === "request" ? (
+              <>
+                <div className="section-copy">
+                  <h2>Create Account</h2>
+                  <p>Sign up with email and password.</p>
+                </div>
+                <form className="auth-form" onSubmit={handleSignup}>
+                  <label className="field">
+                    <span>Email</span>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Password</span>
+                    <input
+                      type="password"
+                      minLength="8"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </label>
+                  <button type="submit" className="primary-button" disabled={isLoading}>
+                    {isLoading ? "Creating..." : "Create account"}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <div className="section-copy">
+                  <h2>Verify Signup OTP</h2>
+                  <p>Enter the OTP code sent to <strong>{email}</strong></p>
+                  <button type="button" className="ghost-button" onClick={() => setStep("request")}>Back to Signup</button>
+                </div>
+                <form className="auth-form" onSubmit={handleVerifyEmailOtp}>
+                  <label className="field">
+                    <span>OTP Code</span>
+                    <input
+                      type="text"
+                      maxLength="6"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      required
+                      autoFocus
+                    />
+                  </label>
+                  <button type="submit" className="primary-button" disabled={isLoading}>
+                    {isLoading ? "Verifying..." : "Verify & Complete Signup"}
+                  </button>
+                </form>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
