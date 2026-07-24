@@ -44,7 +44,7 @@ export function InteractiveRoomMap({
   }, [userLat, userLng]);
 
   return (
-    <div style={{ width: "100%", height: "420px", borderRadius: "16px", overflow: "hidden", border: "1px solid var(--line)", boxShadow: "var(--shadow)" }}>
+    <div className="map-wrapper" style={{ width: "100%", height: "420px", borderRadius: "16px", overflow: "hidden", border: "1px solid var(--line)", boxShadow: "var(--shadow)" }}>
       <MapContainer
         center={centerPosition}
         zoom={13}
